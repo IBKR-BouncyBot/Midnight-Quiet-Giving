@@ -1,0 +1,253 @@
+/** Actual reviewed Lace extension, disposable GitHub-hosted Linux runner only.
+ * No injected wallet adapter, SDK wallet, user profile, exported seed, recording,
+ * trace, screenshot or private receipt artifact. All approvals concern this fresh
+ * Preview-only wallet. A faucet challenge is a blocker, never bypassed.
+ */
+import assert from 'node:assert/strict';
+import { randomBytes, createHash } from 'node:crypto';
+import { mkdir, readFile, writeFile, mkdtemp, realpath, rm } from 'node:fs/promises';
+import { resolve, join, relative, isAbsolute } from 'node:path';
+import { chromium } from 'playwright';
+import { createStaticServer } from './serve.mjs';
+
+const root = resolve(import.meta.dirname, '..');
+const reportDirectory = join(root, 'artifacts/lace-preview');
+const extensionId = 'gafhhkghbfjjkeiendhlofajokpaflmk';
+const extensionOrigin = `chrome-extension://${extensionId}`;
+const faucetUrl = 'https://midnight-tmnight-preview.nethermind.dev/';
+const report = { schema: 'private-donations/real-lace-preview/v1', startedAt: new Date().toISOString(),
+  network: 'preview', extensionVersion: '2.5.1', extensionId, realExtension: false, injectedWalletAdapter: false,
+  walletCreated: false, walletConnected: false, seedReadOrExported: false, internalWasmSelectedInUI: false,
+  internalWasmAttestedByConnector: false, testNightFunded: false, testDustAvailable: false,
+  acceptedTransactions: [], privateArtifactsSaved: false, governmentEndpointContacted: false,
+  observedExternalProofRequests: 0, status: 'running', stages: [] };
+let stage = 'runner-prerequisites', context, server, profile, runnerRoot, app, wallet, password;
+let lastAction = '';
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function save() { await mkdir(reportDirectory, { recursive: true }); await writeFile(join(reportDirectory, 'report.json'), JSON.stringify(report, null, 2) + '\n'); }
+async function step(name, fn) {
+  stage = name; report.currentStage = name; report.stages.push({ name, startedAt: new Date().toISOString() }); await save();
+  process.stdout.write(JSON.stringify({ stage: name, status: 'started' }) + '\n');
+  const value = await fn(); report.stages.at(-1).completed = true; await save(); return value;
+}
+function within(parent, target) { const rel = relative(parent, target); return rel && !rel.startsWith('..') && !isAbsolute(rel); }
+async function visible(locator) { return locator.isVisible().catch(() => false); }
+async function firstClick(page, choices) {
+  for (const choice of choices) {
+    const locator = typeof choice === 'string' ? page.getByTestId(choice) : page.getByText(choice, { exact: true });
+    if (await visible(locator.first())) { await locator.first().click(); return true; }
+  }
+  return false;
+}
+async function input(testId, value) {
+  const target = wallet.getByTestId(testId);
+  if (await target.evaluate(node => node.tagName === 'INPUT').catch(() => false)) await target.fill(value);
+  else await target.locator('input').fill(value);
+}
+async function waitUntil(predicate, timeout = 90000, interval = 500) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) { if (await predicate()) return; await pause(interval); }
+  throw new Error('bounded-stage-timeout');
+}
+async function approveWalletPages() {
+  for (const page of context.pages().filter(page => page.url().startsWith(extensionOrigin))) {
+    // Never open recovery/backup routes or collect their contents.
+    if (await visible(page.getByTestId('recovery-phrase-words'))) throw new Error('unexpected-recovery-display');
+    const fields = page.locator('input[type="password"]');
+    if (await fields.count() === 1 && await visible(fields.first())) await fields.first().fill(password);
+    for (const id of ['dapp-connector-primary-button', 'confirm-button', 'confirm-btn', 'sign-transaction-submit']) {
+      const target = page.getByTestId(id);
+      if (await visible(target) && await target.isEnabled()) { await target.click(); lastAction = id; return; }
+    }
+    for (const label of [/^Connect$/, /^Approve$/, /^Confirm$/, /^Sign$/, /^Generate DUST$/, /^Generate dust$/, /^Confirm transaction$/]) {
+      const target = page.getByRole('button', { name: label }).first();
+      if (await visible(target) && await target.isEnabled()) { await target.click(); lastAction = String(label); return; }
+    }
+  }
+}
+async function runWithApprovals(operation, predicate, timeout = 480000) {
+  await operation();
+  await waitUntil(async () => { await approveWalletPages(); return predicate(); }, timeout, 750);
+}
+async function publicWalletState() {
+  return app.evaluate(async () => {
+    const api = window.__privateDonationsLaceAudit;
+    if (!api) return null;
+    const configuration = await api.getConfiguration();
+    const status = await api.getConnectionStatus();
+    const balances = await api.getUnshieldedBalances();
+    const dust = await api.getDustBalance();
+    return { network: configuration.networkId, connectedNetwork: status.networkId,
+      unshieldedPositive: Object.values(balances).some(value => BigInt(value) > 0n), dust: String(dust.balance ?? dust.dustBalance ?? 0n) };
+  });
+}
+async function collectTransactions() {
+  const rows = await app.locator('#transaction-list li').evaluateAll(nodes => nodes.filter(node => node.querySelector('code')).map(node => ({
+    operation: node.querySelector('strong')?.textContent ?? '', txId: node.querySelector('code')?.textContent ?? '',
+    blockHeight: node.textContent.match(/at block (\d+)/)?.[1] ?? '', confirmationSource: 'configured-preview-indexer',
+  })));
+  for (const row of rows) {
+    if (!/^[0-9a-f]{64}$/.test(row.txId) || !/^\d+$/.test(row.blockHeight)) throw new Error('invalid-public-evidence');
+    if (!report.acceptedTransactions.some(item => item.txId === row.txId)) report.acceptedTransactions.push(row);
+  }
+  await save();
+}
+async function transact(id, completed, timeout = 480000) {
+  await runWithApprovals(() => app.locator(`#${id}`).click(), async () => {
+    await collectTransactions(); return completed();
+  }, timeout);
+}
+
+try {
+  if (process.env.GITHUB_ACTIONS !== 'true' || process.platform !== 'linux' || !process.env.RUNNER_TEMP || !process.env.LACE_EXTENSION_PATH || !process.env.LACE_ACQUISITION_REPORT) throw new Error('isolated-github-runner-required');
+  if (process.env.TEST_WALLET_SEED || process.env.MN_TEST_WALLET_SEED || process.env.WALLET_SEED || process.env.LACE_PASSWORD) throw new Error('external-wallet-credentials-refused');
+  runnerRoot = await realpath(process.env.RUNNER_TEMP);
+  const extension = await realpath(process.env.LACE_EXTENSION_PATH);
+  assert.ok(within(runnerRoot, extension));
+  const acquisition = JSON.parse(await readFile(process.env.LACE_ACQUISITION_REPORT, 'utf8'));
+  assert.equal(acquisition.version, '2.5.1'); assert.equal(acquisition.extensionId, extensionId);
+  assert.equal(acquisition.developerSignatureVerified, true); assert.equal(acquisition.webStorePublisherSignatureVerified, true);
+  report.extensionArchiveSha256 = acquisition.archiveSha256;
+  report.runnerSourceSha256 = createHash('sha256').update(await readFile(import.meta.filename)).digest('hex');
+  profile = await mkdtemp(join(runnerRoot, 'private-donations-lace-profile-'));
+  password = `P8!${randomBytes(32).toString('base64url')}zQ`;
+  server = createStaticServer({ port: 0 });
+  await new Promise(resolve => server.listening ? resolve() : server.once('listening', resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  await step('load-reviewed-real-extension', async () => {
+    context = await chromium.launchPersistentContext(profile, { channel: 'chromium', headless: false, viewport: { width: 1280, height: 960 },
+      args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`, '--no-first-run'],
+      acceptDownloads: false, locale: 'en-US' });
+    context.setDefaultTimeout(20000);
+    context.on('request', request => {
+      try { const url = new URL(request.url()); if (/proofserver|prover/i.test(url.hostname) && !['127.0.0.1', 'localhost'].includes(url.hostname)) report.observedExternalProofRequests++; } catch { /* no payloads */ }
+    });
+    const worker = context.serviceWorkers().find(worker => worker.url().startsWith(extensionOrigin)) ?? await context.waitForEvent('serviceworker', { timeout: 90000 });
+    assert.ok(worker.url().startsWith(extensionOrigin)); report.realExtension = true;
+    wallet = context.pages().find(page => page.url().startsWith(extensionOrigin)) ?? await context.newPage();
+    if (!wallet.url().startsWith(extensionOrigin)) await wallet.goto(`${extensionOrigin}/expo/index.html`);
+    await wallet.getByTestId('onboarding-start-create-wallet-button').waitFor({ timeout: 90000 });
+  });
+  await step('create-fresh-ephemeral-wallet', async () => {
+    await wallet.getByTestId('onboarding-start-create-wallet-button').click();
+    await input('new-password-input', password); await input('confirm-password-input', password);
+    await wallet.getByTestId('next-btn').click();
+    const midnight = wallet.getByTestId('onboarding-create-wallet-toggle-midnight');
+    await midnight.waitFor();
+    const checked = await midnight.getAttribute('aria-checked');
+    if (checked !== 'true') await midnight.click();
+    await wallet.getByTestId('onboarding-create-wallet-finish-button').click();
+    await wallet.getByTestId('main-menu-tab-btn').waitFor({ timeout: 180000 });
+    report.walletCreated = true;
+  });
+  await step('select-preview-network-in-lace', async () => {
+    await wallet.getByTestId('main-menu-tab-btn').click();
+    await wallet.getByText('Settings', { exact: true }).last().click();
+    await wallet.getByText('Network', { exact: true }).last().click();
+    await wallet.getByTestId('network-selection-sheet-network-type-radio-group').getByText('Testnet', { exact: true }).click();
+    const midnightGroup = wallet.locator('[data-testid="network-selection-sheet-radio-group-Midnight"], [data-testid="network-selection-sheet-radio-group-midnight"]');
+    await midnightGroup.getByText('Preview', { exact: true }).click();
+    await wallet.getByTestId('network-selection-sheet-confirm-button').click();
+    report.previewSelectedInUI = true;
+  });
+  await step('select-real-internal-wasm-proving', async () => {
+    if (!await visible(wallet.getByText('Midnight', { exact: true }).last())) {
+      await wallet.getByTestId('main-menu-tab-btn').click(); await wallet.getByText('Settings', { exact: true }).last().click();
+    }
+    await wallet.getByText('Midnight', { exact: true }).last().click();
+    const radio = wallet.getByTestId('proof-server-in-process-radio'); await radio.click();
+    assert.equal(await radio.getAttribute('aria-checked'), 'true');
+    await wallet.getByTestId('save-configuration-button').click();
+    await wallet.getByTestId('midnight-settings-sheet-header').waitFor({ state: 'hidden' });
+    report.internalWasmSelectedInUI = true;
+  });
+  await step('connect-actual-lace-to-donation-page', async () => {
+    app = await context.newPage(); await app.goto(`${origin}/network.html`);
+    await app.locator('#wallet-select option').filter({ hasText: /Lace/ }).waitFor();
+    await app.locator('#storage-password').fill(`A7!${randomBytes(32).toString('base64url')}qR`);
+    await app.locator('#internal-prover-confirmed').check();
+    await runWithApprovals(() => app.locator('#connect-wallet').click(), async () => /Lace connected/.test(await app.locator('#connection-status').textContent()), 180000);
+    // Use the real injected connector for public balance observations only.
+    let connectorFinished = false, connectorError = false;
+    const connected = app.evaluate(async () => {
+      const wallet = Object.values(window.midnight ?? {}).find(value => value?.rdns === 'io.lace.wallet' && /^4\./.test(value.apiVersion));
+      if (!wallet) throw new Error('actual-lace-api-missing'); window.__privateDonationsLaceAudit = await wallet.connect('preview');
+      return window.__privateDonationsLaceAudit.getUnshieldedAddress();
+    }).then(value => { connectorFinished = true; return value; }, () => { connectorFinished = true; connectorError = true; });
+    await waitUntil(async () => { await approveWalletPages(); return connectorFinished; }, 120000);
+    if (connectorError) throw new Error('actual-lace-connector-failed');
+    const address = (await connected).unshieldedAddress;
+    assert.match(address, /^mn_addr_preview1[a-z0-9]+$/);
+    report.freshTestAddress = address; report.walletConnected = true;
+    const configuration = await app.evaluate(() => window.__privateDonationsLaceAudit.getConfiguration());
+    assert.equal(configuration.networkId, 'preview');
+  });
+  await step('request-free-preview-night-from-official-faucet', async () => {
+    const faucet = await context.newPage(); await faucet.goto(faucetUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
+    await pause(2500);
+    if (await faucet.locator('iframe[src*="captcha"], iframe[src*="challenges.cloudflare"], .g-recaptcha, .h-captcha, .cf-turnstile').count()) throw new Error('public-faucet-human-challenge');
+    const field = faucet.locator('input:not([type="hidden"]):not([type="checkbox"]):not([type="submit"])').first();
+    await field.fill(report.freshTestAddress);
+    const button = faucet.getByRole('button', { name: /request|receive|send|get.*(night|token)|fund/i }).first();
+    await button.click(); report.faucetRequested = true;
+    await waitUntil(async () => {
+      if (await faucet.locator('iframe[src*="captcha"], iframe[src*="challenges.cloudflare"]').count()) throw new Error('public-faucet-human-challenge');
+      const state = await publicWalletState(); return state?.unshieldedPositive === true;
+    }, 360000, 5000);
+    report.testNightFunded = true; await faucet.close();
+  });
+  await step('register-night-for-test-dust-in-lace', async () => {
+    await wallet.goto(`${extensionOrigin}/expo/index.html`);
+    const generate = wallet.getByTestId('account-card-generate-dust-button').first();
+    await generate.waitFor({ timeout: 120000 });
+    await runWithApprovals(() => generate.click(), async () => {
+      const state = await publicWalletState(); return state && BigInt(state.dust) > 0n;
+    }, 480000);
+    report.testDustAvailable = true;
+  });
+  await step('deploy-preview-donation-contract-with-lace', async () => {
+    await app.locator('#get-own-recipient').click(); await app.locator('#recipient-label').fill('Fresh Preview test wallet');
+    await transact('deploy', () => app.locator('#lock-contract').isEnabled());
+  });
+  await step('lock-contract-rules-with-lace', async () => { await transact('lock-contract', () => app.locator('#mint').isEnabled()); });
+  await step('mint-valueless-donation-token-with-lace', async () => {
+    const before = report.acceptedTransactions.length;
+    await transact('mint', () => report.acceptedTransactions.length > before && app.locator('#donate-network').isEnabled());
+    await waitUntil(() => app.evaluate(async () => Object.values(await window.__privateDonationsLaceAudit.getShieldedBalances()).some(value => BigInt(value) >= 125n)), 240000, 3000);
+  });
+  await step('donate-and-create-private-receipt-with-real-lace', async () => {
+    await app.locator('#taxpayer-label').fill('CI-DEMO-TAXPAYER'); await app.locator('#donation-amount').fill('125');
+    await transact('donate-network', () => app.locator('#export-private').isEnabled(), 600000);
+    assert.equal(report.observedExternalProofRequests, 0);
+  });
+  await step('independently-verify-private-opening-against-preview-record', async () => {
+    await app.locator('#verify-disclosure').click();
+    await waitUntil(async () => /Private opening \+ indexed donation verified/.test(await app.locator('#authority-status').textContent()), 120000);
+    report.authorityDemoVerified = true; report.selfRecipientMechanicsOnly = true;
+    report.status = 'passed'; report.completedAt = new Date().toISOString(); delete report.currentStage; await save();
+  });
+} catch (error) {
+  report.status = 'failed'; report.failedStage = stage;
+  const message = String(error?.message ?? '');
+  report.failureCategory = /human-challenge/.test(message) ? 'official-faucet-requires-human-challenge'
+    : /Timeout|timeout/.test(message) ? 'bounded-stage-timeout'
+    : /credential|runner|recovery/.test(message) ? 'isolated-runner-safety-boundary' : 'stage-failed';
+  report.lastApprovedControl = lastAction || null;
+  // Structural diagnostics only: no body text, input values, screenshots or logs.
+  if (wallet) report.visibleExtensionControls = await wallet.locator('[data-testid]').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width && node.getBoundingClientRect().height)
+    .map(node => node.getAttribute('data-testid')).filter(value => /^[a-zA-Z0-9_-]{1,100}$/.test(value)).slice(0,100)).catch(() => []);
+  if (app) {
+    await collectTransactions().catch(() => {});
+    report.applicationStatus = await app.locator('#network-status').textContent().catch(() => null);
+  }
+  await save(); process.exitCode = 1;
+} finally {
+  password = undefined;
+  await context?.close().catch(() => {});
+  if (server) await new Promise(resolve => server.close(resolve));
+  if (profile && runnerRoot && within(runnerRoot, profile) && profile.startsWith(join(runnerRoot, 'private-donations-lace-profile-'))) await rm(profile, { recursive: true, force: true });
+  report.ephemeralProfileRemoved = Boolean(profile); await save();
+  process.stdout.write(JSON.stringify({ status: report.status, failedStage: report.failedStage, failureCategory: report.failureCategory,
+    realExtension: report.realExtension, walletCreated: report.walletCreated, walletConnected: report.walletConnected,
+    acceptedTransactions: report.acceptedTransactions.length, evidence: 'artifacts/lace-preview/report.json' }) + '\n');
+}

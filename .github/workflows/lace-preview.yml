@@ -1,0 +1,53 @@
+name: Real Lace Preview acceptance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-lace-preview
+  cancel-in-progress: false
+
+jobs:
+  lace:
+    name: Fresh Lace wallet and Preview donation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install pinned dependencies
+        run: npm ci --ignore-scripts
+      - name: Install official Compact compiler
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash scripts/ci-install-midnight.sh
+      - name: Generate contract proving keys
+        run: npm run compile
+      - name: Build actual browser and network clients
+        run: npm run build
+      - name: Install Chromium and virtual display support
+        run: npx playwright install --with-deps chromium
+      - name: Acquire and verify the official Lace extension
+        id: lace
+        run: node scripts/ci-acquire-lace.mjs
+      - name: Exercise real Lace in an ephemeral profile
+        env:
+          LACE_EXTENSION_PATH: ${{ steps.lace.outputs.extension-path }}
+          LACE_ACQUISITION_REPORT: ${{ steps.lace.outputs.acquisition-report }}
+        run: xvfb-run -a node scripts/test-lace-runner.mjs
+      - name: Retain only the public verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lace-preview-public-report
+          path: artifacts/lace-preview/report.json
+          if-no-files-found: warn
+          retention-days: 14

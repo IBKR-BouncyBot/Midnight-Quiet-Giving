@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.tools/
+.local/
+artifacts/
+contracts/managed/
+.env
+.env.*
+!.env.example
+*.log
+*.private.json
+*.private.txt
+.DS_Store

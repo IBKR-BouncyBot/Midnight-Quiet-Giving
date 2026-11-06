@@ -1,0 +1,46 @@
+{
+  "name": "midnight-private-donations",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Quiet Giving: private test-token donations with verifiable evidence you choose to share",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "compile": "node scripts/compile.mjs",
+    "compile:fast": "node scripts/compile.mjs --skip-zk",
+    "test": "node --test tests/*.test.mjs",
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/serve.mjs",
+    "test:browser": "node scripts/test-browser.mjs",
+    "test:proofs": "node scripts/test-worker-proofs.mjs"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.16.0",
+    "@midnight-ntwrk/dapp-connector-api": "4.0.1",
+    "@midnight-ntwrk/midnight-js-contracts": "4.1.1",
+    "@midnight-ntwrk/midnight-js-dapp-connector-proof-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-fetch-zk-config-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-http-client-proof-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-indexer-public-data-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-level-private-state-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-network-id": "4.1.1",
+    "@midnight-ntwrk/midnight-js-node-zk-config-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-protocol": "4.1.1",
+    "@midnight-ntwrk/midnight-js-utils": "4.1.1",
+    "assert": "2.1.0",
+    "buffer": "6.0.3",
+    "events": "3.3.0",
+    "process": "0.11.10"
+  },
+  "devDependencies": {
+    "@midnight-ntwrk/zkir-v2": "2.1.1",
+    "esbuild": "0.25.12",
+    "playwright": "1.64.1"
+  },
+  "overrides": {
+    "@midnight-ntwrk/onchain-runtime-v3": "3.0.0"
+  }
+}

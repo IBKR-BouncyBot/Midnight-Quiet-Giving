@@ -1,0 +1,86 @@
+// Quiet Giving. Valueless demonstration tokens only.
+// Taxpayer identifiers and receipt openings never enter public ledger state.
+pragma language_version 0.23;
+import CompactStandardLibrary;
+
+struct DonationReceipt {
+  purpose: Bytes<32>;
+  campaign: Bytes<32>;
+  deployedContract: Bytes<32>;
+  receiptId: Bytes<32>;
+  recipient: Bytes<32>;
+  asset: Bytes<32>;
+  amount: Uint<64>;
+  validFrom: Uint<64>;
+  validUntil: Uint<64>;
+  taxpayerDigest: Bytes<32>;
+  donorSecret: Bytes<32>;
+}
+
+export sealed ledger campaignId: Bytes<32>;
+export sealed ledger recipient: ZswapCoinPublicKey;
+export ledger receipts: Map<Bytes<32>, Bytes<32>>;
+export ledger usedNonces: Set<Bytes<32>>;
+export ledger totalDonations: Counter;
+export ledger totalMints: Counter;
+
+witness donorSecret(): Bytes<32>;
+witness taxpayerDigest(): Bytes<32>;
+witness receiptSalt(): Bytes<32>;
+
+constructor(id: Bytes<32>, receiver: ZswapCoinPublicKey) {
+  assert(id != default<Bytes<32>>, "Campaign id required");
+  assert(receiver.bytes != default<Bytes<32>>, "Recipient key required");
+  campaignId = disclose(id);
+  recipient = disclose(receiver);
+}
+
+export pure circuit testTokenColor(address: Bytes<32>): Bytes<32> {
+  return tokenType(pad(32, "private-donations:test:v1"), ContractAddress { bytes: address });
+}
+
+export pure circuit receiptCommitment(scope: Bytes<32>, address: Bytes<32>, id: Bytes<32>, receiver: Bytes<32>, asset: Bytes<32>, amount: Uint<64>, validFrom: Uint<64>, validUntil: Uint<64>, identityDigest: Bytes<32>, secret: Bytes<32>, salt: Bytes<32>): Bytes<32> {
+  return persistentCommit<DonationReceipt>(DonationReceipt {
+    purpose: pad(32, "private-donations:receipt:v1"),
+    campaign: scope, deployedContract: address, receiptId: id,
+    recipient: receiver, asset: asset, amount: amount,
+    validFrom: validFrom, validUntil: validUntil,
+    taxpayerDigest: identityDigest, donorSecret: secret
+  }, salt);
+}
+
+// Unlimited public faucet: this asset has no monetary value or tax deduction.
+export circuit mint(receiver: ZswapCoinPublicKey, amount: Uint<64>, nonce: Bytes<32>): [] {
+  assert(receiver.bytes != default<Bytes<32>>, "Recipient key required");
+  assert(amount > 0 && amount <= 1000000, "Mint amount must be one to one million test units");
+  assert(nonce != default<Bytes<32>>, "Fresh mint nonce required");
+  const nonceId = disclose(persistentHash<Vector<2, Bytes<32>>>([pad(32, "private-donations:mint:v1"), nonce]));
+  assert(!usedNonces.member(nonceId), "Mint nonce already used");
+  mintShieldedToken(pad(32, "private-donations:test:v1"), disclose(amount), disclose(nonce), left<ZswapCoinPublicKey, ContractAddress>(disclose(receiver)));
+  usedNonces.insert(nonceId);
+  totalMints.increment(1);
+}
+
+export circuit donate(coin: ShieldedCoinInfo, receiptId: Bytes<32>, validFrom: Uint<64>, validUntil: Uint<64>): [] {
+  assert(coin.color == testTokenColor(kernel.self().bytes), "Only this campaign's test token is accepted");
+  assert(coin.value > 0 && coin.value <= 1000000, "Donation amount must be one to one million test units");
+  assert(coin.nonce != default<Bytes<32>>, "Fresh donation coin required");
+  assert(receiptId != default<Bytes<32>>, "Receipt id required");
+  assert(validFrom < validUntil && validUntil - validFrom <= 1800, "Donation window must be at most thirty minutes");
+  assert(blockTimeGte(disclose(validFrom)) && blockTimeLt(disclose(validUntil)), "Donation outside its validity window");
+  assert(donorSecret() != default<Bytes<32>>, "Private donor secret required");
+  assert(taxpayerDigest() != default<Bytes<32>>, "Taxpayer commitment input required");
+  assert(receiptSalt() != default<Bytes<32>>, "Private receipt randomness required");
+  const id = disclose(receiptId);
+  assert(!receipts.member(id), "Receipt id already used");
+  const nonceId = disclose(persistentHash<Vector<2, Bytes<32>>>([pad(32, "private-donations:coin:v1"), coin.nonce]));
+  assert(!usedNonces.member(nonceId), "Donation coin nonce already used");
+  // The client supplies a fresh coin created for this contract in the current
+  // transaction. Wallet balancing funds it; this circuit pays its entire value.
+  receiveShielded(disclose(coin));
+  sendImmediateShielded(disclose(coin), left<ZswapCoinPublicKey, ContractAddress>(recipient), disclose(coin.value));
+  const commitment = receiptCommitment(campaignId, kernel.self().bytes, receiptId, recipient.bytes, coin.color, coin.value as Uint<64>, validFrom, validUntil, taxpayerDigest(), donorSecret(), receiptSalt());
+  receipts.insert(id, commitment);
+  usedNonces.insert(nonceId);
+  totalDonations.increment(1);
+}

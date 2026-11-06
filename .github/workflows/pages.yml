@@ -1,0 +1,74 @@
+name: Test and publish Private Donations
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compile, test and package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install pinned Compact compiler
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash scripts/ci-install-midnight.sh
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+      - name: Compile donation contract and proof keys
+        run: npm run compile
+      - name: Check contract and privacy boundaries
+        run: npm test
+      - name: Build static application
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Exercise browser donation and disclosure journey
+        run: npm run test:browser
+      - name: Save sanitized browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: donation-browser-checks
+          path: artifacts/browser
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+  deploy:
+    name: Publish GitHub Pages
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
+        id: deploy
