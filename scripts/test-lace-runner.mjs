@@ -66,6 +66,15 @@ function navigationCategory(error) {
   if (/Timeout|timeout/.test(message)) return 'bounded-stage-timeout';
   return null;
 }
+function recordNetworkError(error, field) {
+  const code = String(error?.message ?? '').match(/\bnet::ERR_[A-Z0-9_]+\b/)?.[0];
+  if (code) report[field] = code;
+}
+async function extensionWorkerHealth() {
+  const workers = context?.serviceWorkers().filter(worker => worker.url().startsWith(extensionOrigin)) ?? [];
+  const liveness = await Promise.all(workers.map(worker => Promise.race([worker.evaluate(() => true).catch(() => false), pause(3000).then(() => false)])));
+  return { count: workers.length, liveCount: liveness.filter(Boolean).length };
+}
 function safeExtensionRoute(page) {
   try {
     const url = new URL(page.url());
@@ -75,13 +84,13 @@ function safeExtensionRoute(page) {
 }
 async function reloadWallet() {
   const previous = wallet;
-  const observedUrl = previous.url();
   report.walletNavigationBefore = safeExtensionRoute(previous);
   if (!report.walletNavigationBefore) throw new Error('unexpected-wallet-navigation-origin');
   // Preserve the actual Lace URL rather than changing routes. A real extension
   // view transition may replace this page, so detect its replacement below.
   try { await previous.reload({ waitUntil: 'domcontentloaded', timeout: 90000 }); }
   catch (error) {
+    recordNetworkError(error, 'walletReloadNetworkError');
     const category = navigationCategory(error);
     if (!['browser-target-closed', 'navigation-aborted'].includes(category)) throw error;
     report.walletReloadTransition = category;
@@ -98,16 +107,25 @@ async function reloadWallet() {
         return true;
       }
     }
-    // Lace's official openTabView uses an ordinary tab at its extension URL.
-    // If a reload closes only that tab, keep the live app/context and reopen the
-    // exact observed URL once instead of assuming Lace will recreate it itself.
+    // Use the same chrome.tabs.create route as Lace's signed openLaceTab code,
+    // from its own live extension worker. This grants no adapter or wallet state
+    // access and avoids external navigation to a private extension resource.
     if (!fallbackOpened && previous.isClosed() && pages.length === 0 && Date.now() - replacementWaitStarted >= 5000
       && !report.unexpectedContextClosed && app && !app.isClosed()) {
       fallbackOpened = true;
       report.walletReloadFallbackOpened = true;
-      const replacement = await context.newPage();
-      try { await replacement.goto(observedUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }); }
+      report.walletReloadFallbackMethod = 'extension-chrome-tabs-create';
+      report.extensionWorkersAtRecovery = await extensionWorkerHealth();
+      const worker = context.serviceWorkers().find(worker => worker.url().startsWith(extensionOrigin));
+      if (!worker || report.extensionWorkersAtRecovery.liveCount === 0) throw new Error('extension-worker-unavailable');
+      try {
+        report.walletReloadFallbackTabCreated = await worker.evaluate(async () => {
+          const tab = await chrome.tabs.create({ url: chrome.runtime.getURL('expo/index.html'), active: true });
+          return Number.isInteger(tab.id);
+        });
+      }
       catch (error) {
+        recordNetworkError(error, 'walletReloadFallbackNetworkError');
         const category = navigationCategory(error);
         if (!['browser-target-closed', 'navigation-aborted'].includes(category)) throw error;
         report.walletReloadFallbackTransition = category;
@@ -413,11 +431,14 @@ try {
 } catch (error) {
   report.status = 'failed'; report.failedStage = stage;
   const message = String(error?.message ?? '');
+  recordNetworkError(error, 'networkErrorCode');
   report.failureCategory = /human-challenge/.test(message) ? 'official-faucet-requires-human-challenge'
     : /faucet-rate-limit/.test(message) ? 'official-faucet-rate-limit'
     : /faucet-service-unavailable/.test(message) ? 'official-faucet-service-unavailable'
+    : /extension-worker-unavailable/.test(message) ? 'extension-worker-unavailable'
     : navigationCategory(error) ?? (/credential|runner|recovery/.test(message) ? 'isolated-runner-safety-boundary' : 'stage-failed');
   report.lastApprovedControl = lastAction || null;
+  if (context) report.extensionWorkersAtFailure = await extensionWorkerHealth();
   if (wallet) {
     report.failedProofControlStructure = await radioStructure();
     report.focusedProofSettingsDiagnostics = await proofSettingsControls();
