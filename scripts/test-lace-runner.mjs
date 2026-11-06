@@ -75,7 +75,9 @@ function safeExtensionRoute(page) {
 }
 async function reloadWallet() {
   const previous = wallet;
+  const observedUrl = previous.url();
   report.walletNavigationBefore = safeExtensionRoute(previous);
+  if (!report.walletNavigationBefore) throw new Error('unexpected-wallet-navigation-origin');
   // Preserve the actual Lace URL rather than changing routes. A real extension
   // view transition may replace this page, so detect its replacement below.
   try { await previous.reload({ waitUntil: 'domcontentloaded', timeout: 90000 }); }
@@ -84,6 +86,8 @@ async function reloadWallet() {
     if (!['browser-target-closed', 'navigation-aborted'].includes(category)) throw error;
     report.walletReloadTransition = category;
   }
+  const replacementWaitStarted = Date.now();
+  let fallbackOpened = false;
   await waitUntil(async () => {
     const pages = context.pages().filter(page => !page.isClosed() && page.url().startsWith(extensionOrigin));
     for (const page of [previous, ...pages.filter(page => page !== previous)]) {
@@ -92,6 +96,21 @@ async function reloadWallet() {
         report.walletPageReplacedOnReload = page !== previous;
         report.walletNavigationAfter = safeExtensionRoute(page);
         return true;
+      }
+    }
+    // Lace's official openTabView uses an ordinary tab at its extension URL.
+    // If a reload closes only that tab, keep the live app/context and reopen the
+    // exact observed URL once instead of assuming Lace will recreate it itself.
+    if (!fallbackOpened && previous.isClosed() && pages.length === 0 && Date.now() - replacementWaitStarted >= 5000
+      && !report.unexpectedContextClosed && app && !app.isClosed()) {
+      fallbackOpened = true;
+      report.walletReloadFallbackOpened = true;
+      const replacement = await context.newPage();
+      try { await replacement.goto(observedUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }); }
+      catch (error) {
+        const category = navigationCategory(error);
+        if (!['browser-target-closed', 'navigation-aborted'].includes(category)) throw error;
+        report.walletReloadFallbackTransition = category;
       }
     }
     return false;
