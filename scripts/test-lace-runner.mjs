@@ -82,57 +82,11 @@ function safeExtensionRoute(page) {
     return { path: url.pathname, queryParameterNames: [...new Set(url.searchParams.keys())].filter(name => /^[a-zA-Z0-9_-]{1,80}$/.test(name)) };
   } catch { return null; }
 }
-async function reloadWallet() {
-  const previous = wallet;
-  report.walletNavigationBefore = safeExtensionRoute(previous);
-  if (!report.walletNavigationBefore) throw new Error('unexpected-wallet-navigation-origin');
-  // Preserve the actual Lace URL rather than changing routes. A real extension
-  // view transition may replace this page, so detect its replacement below.
-  try { await previous.reload({ waitUntil: 'domcontentloaded', timeout: 90000 }); }
-  catch (error) {
-    recordNetworkError(error, 'walletReloadNetworkError');
-    const category = navigationCategory(error);
-    if (!['browser-target-closed', 'navigation-aborted'].includes(category)) throw error;
-    report.walletReloadTransition = category;
-  }
-  const replacementWaitStarted = Date.now();
-  let fallbackOpened = false;
-  await waitUntil(async () => {
-    const pages = context.pages().filter(page => !page.isClosed() && page.url().startsWith(extensionOrigin));
-    for (const page of [previous, ...pages.filter(page => page !== previous)]) {
-      if (!page.isClosed() && await visible(page.getByTestId('main-menu-tab-btn'))) {
-        wallet = page;
-        report.walletPageReplacedOnReload = page !== previous;
-        report.walletNavigationAfter = safeExtensionRoute(page);
-        return true;
-      }
-    }
-    // Use the same chrome.tabs.create route as Lace's signed openLaceTab code,
-    // from its own live extension worker. This grants no adapter or wallet state
-    // access and avoids external navigation to a private extension resource.
-    if (!fallbackOpened && previous.isClosed() && pages.length === 0 && Date.now() - replacementWaitStarted >= 5000
-      && !report.unexpectedContextClosed && app && !app.isClosed()) {
-      fallbackOpened = true;
-      report.walletReloadFallbackOpened = true;
-      report.walletReloadFallbackMethod = 'extension-chrome-tabs-create';
-      report.extensionWorkersAtRecovery = await extensionWorkerHealth();
-      const worker = context.serviceWorkers().find(worker => worker.url().startsWith(extensionOrigin));
-      if (!worker || report.extensionWorkersAtRecovery.liveCount === 0) throw new Error('extension-worker-unavailable');
-      try {
-        report.walletReloadFallbackTabCreated = await worker.evaluate(async () => {
-          const tab = await chrome.tabs.create({ url: chrome.runtime.getURL('expo/index.html'), active: true });
-          return Number.isInteger(tab.id);
-        });
-      }
-      catch (error) {
-        recordNetworkError(error, 'walletReloadFallbackNetworkError');
-        const category = navigationCategory(error);
-        if (!['browser-target-closed', 'navigation-aborted'].includes(category)) throw error;
-        report.walletReloadFallbackTransition = category;
-      }
-    }
-    return false;
-  }, 90000, 500);
+async function closeProofSettings() {
+  const closeButton = wallet.locator('[data-testid="side-sheet-close-button"]:visible');
+  if (await closeButton.count() !== 1) throw new Error('ambiguous-proof-settings-close-control');
+  await closeButton.click();
+  await wallet.getByTestId('proof-server-in-process-radio').waitFor({ state: 'detached' });
 }
 async function proofSettingsControls() {
   return wallet.locator('[data-testid]').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width && node.getBoundingClientRect().height)
@@ -151,8 +105,12 @@ async function completeProofSettingsSave() {
   report.proofSettingsAfterSave = await proofSettingsControls();
   if (await visible(header)) {
     if (await visible(wallet.getByTestId('proof-server-disclosure-message'))) throw new Error('unexpected-proof-server-disclosure');
-    report.proofSettingsSaveOutcome = 'save-control-enabled-after-dispatch';
-  } else report.proofSettingsSaveOutcome = 'sheet-not-visible-after-save';
+    await control('close-saved-proof-settings-sheet', closeProofSettings);
+    report.proofSettingsSaveOutcome = 'normal-close-control';
+  } else {
+    await wallet.getByTestId('proof-server-in-process-radio').waitFor({ state: 'detached' });
+    report.proofSettingsSaveOutcome = 'sheet-closed-automatically';
+  }
 }
 function within(parent, target) { const rel = relative(parent, target); return rel && !rel.startsWith('..') && !isAbsolute(rel); }
 async function visible(locator) { return locator.isVisible().catch(() => false); }
@@ -173,23 +131,25 @@ async function waitUntil(predicate, timeout = 90000, interval = 500) {
   while (Date.now() < deadline) { if (await predicate()) return; await pause(interval); }
   throw new Error('bounded-stage-timeout');
 }
+async function authenticateFreshWallet(page) {
+  const authentication = page.getByTestId('authentication-prompt-input-value');
+  const authenticationConfirm = page.getByTestId('authentication-prompt-button-confirm');
+  if (!await visible(authentication) && !await visible(authenticationConfirm)) return false;
+  report.walletPromptState = 'authentication';
+  if (await visible(authentication) && await authentication.isEditable()) await authentication.fill(password);
+  if (await visible(authenticationConfirm) && await authenticationConfirm.isEnabled()) {
+    await control('confirm-fresh-wallet-authentication', () => authenticationConfirm.click());
+    lastAction = 'authentication-prompt-button-confirm';
+  }
+  return true;
+}
 async function approveWalletPages() {
   for (const page of context.pages().filter(page => page.url().startsWith(extensionOrigin))) {
     // Never open recovery/backup routes or collect their contents.
     if (await visible(page.getByTestId('recovery-phrase-words'))) throw new Error('unexpected-recovery-display');
     // Lace's authentication sheet overlays the still-visible connector/review
     // controls. Finish this exact prompt before touching anything behind it.
-    const authentication = page.getByTestId('authentication-prompt-input-value');
-    const authenticationConfirm = page.getByTestId('authentication-prompt-button-confirm');
-    if (await visible(authentication) || await visible(authenticationConfirm)) {
-      report.walletPromptState = 'authentication';
-      if (await visible(authentication) && await authentication.isEditable()) await authentication.fill(password);
-      if (await visible(authenticationConfirm) && await authenticationConfirm.isEnabled()) {
-        await control('confirm-fresh-wallet-authentication', () => authenticationConfirm.click());
-        lastAction = 'authentication-prompt-button-confirm';
-      }
-      return;
-    }
+    if (await authenticateFreshWallet(page)) return;
     // The Midnight authorization page requires an explicit account selection,
     // even for the only account in this new disposable wallet.
     if (page.url().includes('midnight-authorize-dapp')) {
@@ -337,18 +297,15 @@ try {
     report.selectedProofControlStructure = await radioStructure();
     await control('save-internal-wasm-setting', () => wallet.getByTestId('save-configuration-button').click());
     await control('complete-internal-wasm-settings-save', completeProofSettingsSave);
-    // A new page mount discards the settings component's local useState value.
-    // The following selection therefore comes from the persisted wallet config.
-    await control('reload-wallet-to-verify-persisted-proving', reloadWallet);
-    await control('wait-for-reloaded-wallet', () => wallet.getByTestId('main-menu-tab-btn').waitFor({ timeout: 90000 }));
-    await openSettings();
+    // Detachment discards the settings component's local useState value. The
+    // reopened sheet initializes its selection from the wallet configuration.
     await control('reopen-midnight-settings-to-check-persistence', () => wallet.getByTestId('option-list-item-midnight').click());
     await control('wait-for-persisted-proof-settings', () => wallet.getByTestId('proof-server-in-process-radio').waitFor());
     await control('clear-persisted-radio-hover-and-focus', clearRadioInteraction);
     await control('verify-persisted-internal-wasm-selection', () => wallet.getByTestId('proof-server-in-process-radio-checkmark').waitFor());
     report.persistedProofControlStructure = await radioStructure();
-    await control('reload-wallet-after-persistence-check', reloadWallet);
-    await control('wait-for-verified-wallet-page', () => wallet.getByTestId('main-menu-tab-btn').waitFor({ timeout: 90000 }));
+    await control('close-verified-proof-settings-sheet', closeProofSettings);
+    await control('return-to-wallet-portfolio', () => wallet.getByTestId('portfolio-tab-btn').click());
     report.internalWasmSelectionEvidence = 'persisted-unfocused-unhovered-radio-checkmark';
     report.internalWasmSelectedInUI = true;
   });
@@ -399,7 +356,8 @@ try {
     report.testNightFunded = true; await faucet.close();
   });
   await step('register-night-for-test-dust-in-lace', async () => {
-    await reloadWallet();
+    await wallet.bringToFront();
+    await control('open-portfolio-for-dust-generation', () => wallet.getByTestId('portfolio-tab-btn').click());
     const generate = wallet.getByTestId('account-card-generate-dust-button').first();
     await generate.waitFor({ timeout: 120000 });
     await runWithApprovals(() => generate.click(), async () => {

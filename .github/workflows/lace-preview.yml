@@ -33,8 +33,11 @@ jobs:
         run: npm run compile
       - name: Build actual browser and network clients
         run: npm run build
-      - name: Install Chromium and virtual display support
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium for the hosted runner
+        timeout-minutes: 10
+        # Ubuntu 24.04's hosted image supplies Xvfb and the Chromium libraries.
+        # Avoid downloading unrelated font packages from the Ubuntu mirror.
+        run: npx playwright install chromium
       - name: Acquire and verify the official Lace extension
         id: lace
         run: node scripts/ci-acquire-lace.mjs
