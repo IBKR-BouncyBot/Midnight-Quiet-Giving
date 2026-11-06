@@ -19,6 +19,8 @@ A graphic Midnight prototype showing a donor phone, a recipient phone and a tax-
 
 The browser demo generates no zero-knowledge proof and submits no transaction. The network client reports proving, submission and confirmation separately. GitHub Pages hosts the frontend; it does not run a tax server, prover or blockchain node. See [verification](docs/VERIFICATION.md) for what has actually been tested.
 
+**Verification status:** the browser journey and separate real WASM proof-generation checks pass. A full donation through Lace on Preview remains unverified; the isolated real-extension runs stopped during wallet setup.
+
 ## Try the browser demo
 
 1. Choose an illustrative donor and recipient, enter an amount and a fictional taxpayer reference.
