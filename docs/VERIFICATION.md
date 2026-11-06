@@ -17,6 +17,8 @@ Chromium 156.0.8078.4 completed the browser journey with zero page errors and ze
 
 The browser test's sanitized JSON and screenshots are generated under ignored `artifacts/browser/`; CI retains that directory. They establish local execution and UI behavior, not proof generation, a Lace interaction or an accepted network payment. No historical result from BallotLab, Agent AI Wallet or ReviewLab is evidence of this application's transaction acceptance.
 
+The published Quiet Giving site also passed a Chromium smoke check: donation and deliberate disclosure, no donor label in the recipient view, wallet-free network startup, the support QR and copy control, and the correct repository links. No page errors were recorded. The README infographic was rendered and visually reviewed, published to GitHub, and retrieved successfully from its public URL.
+
 ## Real WASM proof generation
 
 The separate `npm run test:proofs` harness generated both circuit proofs in a dedicated Chromium 156 Web Worker using official `@midnight-ntwrk/zkir-v2` 2.1.1 and the generated compiler material. The mint proof was 4,501 bytes in 22.1 seconds; the donation proof was 4,501 bytes in 78.5 seconds on the tested desktop. These timings are observations, not performance promises.

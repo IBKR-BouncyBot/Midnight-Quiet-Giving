@@ -56,6 +56,26 @@ async function clearRadioInteraction() {
   await wallet.getByTestId('proof-server-in-process-radio').press('Tab');
   await wallet.mouse.move(0, 0);
 }
+async function proofSettingsControls() {
+  return wallet.locator('[data-testid]').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width && node.getBoundingClientRect().height)
+    .filter(node => /^(proof-server-|midnight-settings-|save-configuration-button$|side-sheet-close-button$|authentication-prompt-)/.test(node.getAttribute('data-testid') ?? ''))
+    .map(node => ({ testId: node.getAttribute('data-testid'), role: node.getAttribute('role'),
+      ariaDisabled: node.getAttribute('aria-disabled'), disabled: node.hasAttribute('disabled'), focused: document.activeElement === node })).slice(0, 80)).catch(() => []);
+}
+async function completeProofSettingsSave() {
+  const header = wallet.getByTestId('midnight-settings-sheet-header');
+  const saveButton = wallet.getByTestId('save-configuration-button');
+  // The reviewed settings effect emits its override and savingCompleted in one
+  // sequence. Allow the connector round trip before inspecting the rendered
+  // idle state; never dismiss an actively disabled/Saving form.
+  await pause(2000);
+  await waitUntil(async () => !await visible(header) || await visible(saveButton) && await saveButton.isEnabled(), 180000, 500);
+  report.proofSettingsAfterSave = await proofSettingsControls();
+  if (await visible(header)) {
+    if (await visible(wallet.getByTestId('proof-server-disclosure-message'))) throw new Error('unexpected-proof-server-disclosure');
+    report.proofSettingsSaveOutcome = 'save-control-enabled-after-dispatch';
+  } else report.proofSettingsSaveOutcome = 'sheet-not-visible-after-save';
+}
 function within(parent, target) { const rel = relative(parent, target); return rel && !rel.startsWith('..') && !isAbsolute(rel); }
 async function visible(locator) { return locator.isVisible().catch(() => false); }
 async function firstClick(page, choices) {
@@ -225,14 +245,19 @@ try {
     await control('verify-internal-wasm-selection', () => wallet.getByTestId('proof-server-in-process-radio-checkmark').waitFor());
     report.selectedProofControlStructure = await radioStructure();
     await control('save-internal-wasm-setting', () => wallet.getByTestId('save-configuration-button').click());
-    await control('wait-for-midnight-settings-to-close', () => wallet.getByTestId('midnight-settings-sheet-header').waitFor({ state: 'hidden' }));
+    await control('complete-internal-wasm-settings-save', completeProofSettingsSave);
+    // A new page mount discards the settings component's local useState value.
+    // The following selection therefore comes from the persisted wallet config.
+    await control('reload-wallet-to-verify-persisted-proving', () => wallet.goto(`${extensionOrigin}/expo/index.html`));
+    await control('wait-for-reloaded-wallet', () => wallet.getByTestId('main-menu-tab-btn').waitFor({ timeout: 90000 }));
+    await openSettings();
     await control('reopen-midnight-settings-to-check-persistence', () => wallet.getByTestId('option-list-item-midnight').click());
     await control('wait-for-persisted-proof-settings', () => radio.waitFor());
     await control('clear-persisted-radio-hover-and-focus', clearRadioInteraction);
     await control('verify-persisted-internal-wasm-selection', () => wallet.getByTestId('proof-server-in-process-radio-checkmark').waitFor());
     report.persistedProofControlStructure = await radioStructure();
-    await control('close-verified-midnight-settings', () => wallet.getByTestId('save-configuration-button').click());
-    await control('wait-for-verified-settings-to-close', () => wallet.getByTestId('midnight-settings-sheet-header').waitFor({ state: 'hidden' }));
+    await control('reload-wallet-after-persistence-check', () => wallet.goto(`${extensionOrigin}/expo/index.html`));
+    await control('wait-for-verified-wallet-page', () => wallet.getByTestId('main-menu-tab-btn').waitFor({ timeout: 90000 }));
     report.internalWasmSelectionEvidence = 'persisted-unfocused-unhovered-radio-checkmark';
     report.internalWasmSelectedInUI = true;
   });
@@ -321,7 +346,10 @@ try {
     : /Timeout|timeout/.test(message) ? 'bounded-stage-timeout'
     : /credential|runner|recovery/.test(message) ? 'isolated-runner-safety-boundary' : 'stage-failed';
   report.lastApprovedControl = lastAction || null;
-  if (wallet) report.failedProofControlStructure = await radioStructure();
+  if (wallet) {
+    report.failedProofControlStructure = await radioStructure();
+    report.focusedProofSettingsDiagnostics = await proofSettingsControls();
+  }
   // Structural diagnostics only: no body text, input values, screenshots or logs.
   if (wallet) report.visibleExtensionControls = await wallet.locator('[data-testid]').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width && node.getBoundingClientRect().height)
     .map(node => node.getAttribute('data-testid')).filter(value => /^[a-zA-Z0-9_-]{1,100}$/.test(value)).slice(0,100)).catch(() => []);
