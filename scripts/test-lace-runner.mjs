@@ -167,7 +167,9 @@ try {
     await control('open-midnight-settings', () => wallet.getByTestId('option-list-item-midnight').click());
     const radio = wallet.getByTestId('proof-server-in-process-radio');
     await control('select-internal-wasm-radio', () => radio.click());
-    assert.equal(await radio.getAttribute('aria-checked'), 'true');
+    // Lace's reviewed RadioButton uses accessibilityState.selected, which
+    // React Native Web exposes as aria-selected (not aria-checked).
+    await control('verify-internal-wasm-selection', () => waitUntil(async () => await radio.getAttribute('aria-selected') === 'true', 20000, 100));
     await control('save-internal-wasm-setting', () => wallet.getByTestId('save-configuration-button').click());
     await control('wait-for-midnight-settings-to-close', () => wallet.getByTestId('midnight-settings-sheet-header').waitFor({ state: 'hidden' }));
     report.internalWasmSelectedInUI = true;
@@ -195,14 +197,25 @@ try {
   });
   await step('request-free-preview-night-from-official-faucet', async () => {
     const faucet = await context.newPage(); await faucet.goto(faucetUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
-    await pause(2500);
-    if (await faucet.locator('iframe[src*="captcha"], iframe[src*="challenges.cloudflare"], .g-recaptcha, .h-captcha, .cf-turnstile').count()) throw new Error('public-faucet-human-challenge');
-    const field = faucet.locator('input:not([type="hidden"]):not([type="checkbox"]):not([type="submit"])').first();
-    await field.fill(report.freshTestAddress);
-    const button = faucet.getByRole('button', { name: /request|receive|send|get.*(night|token)|fund/i }).first();
-    await button.click(); report.faucetRequested = true;
+    await control('fill-official-faucet-address', () => faucet.locator('#address').fill(report.freshTestAddress));
+    const button = faucet.getByRole('button', { name: 'Request tokens', exact: true });
+    // The official site may complete its managed browser verification itself.
+    // Wait for its genuine enabled submit control; never solve a challenge,
+    // inject a captcha token or call an alternate/bypassing request endpoint.
+    await control('wait-for-official-faucet-ready', async () => {
+      try { await waitUntil(() => button.isEnabled(), 90000, 1000); }
+      catch {
+        const challengePresent = await faucet.locator('iframe[src*="captcha"], iframe[src*="challenges.cloudflare"], .g-recaptcha, .h-captcha, .cf-turnstile, #cf-turnstile').count() > 0;
+        const completedNormally = await faucet.locator('input[name="cf-turnstile-response"]').evaluateAll(nodes => nodes.some(node => node.value.length > 0));
+        report.faucetChallengePresent = challengePresent; report.faucetBrowserVerificationCompleted = completedNormally;
+        throw new Error(challengePresent && !completedNormally ? 'public-faucet-human-challenge' : 'public-faucet-service-unavailable');
+      }
+    });
+    report.faucetSubmitEnabledNormally = true;
+    await control('request-preview-test-tokens', () => button.click()); report.faucetRequested = true;
     await waitUntil(async () => {
-      if (await faucet.locator('iframe[src*="captcha"], iframe[src*="challenges.cloudflare"]').count()) throw new Error('public-faucet-human-challenge');
+      const rejected = await faucet.getByText(/too many requests|rate limit|already requested|daily limit/i).count() > 0;
+      if (rejected) throw new Error('public-faucet-rate-limit');
       const state = await publicWalletState(); return state?.unshieldedPositive === true;
     }, 360000, 5000);
     report.testNightFunded = true; await faucet.close();
@@ -241,6 +254,8 @@ try {
   report.status = 'failed'; report.failedStage = stage;
   const message = String(error?.message ?? '');
   report.failureCategory = /human-challenge/.test(message) ? 'official-faucet-requires-human-challenge'
+    : /faucet-rate-limit/.test(message) ? 'official-faucet-rate-limit'
+    : /faucet-service-unavailable/.test(message) ? 'official-faucet-service-unavailable'
     : /Timeout|timeout/.test(message) ? 'bounded-stage-timeout'
     : /credential|runner|recovery/.test(message) ? 'isolated-runner-safety-boundary' : 'stage-failed';
   report.lastApprovedControl = lastAction || null;
