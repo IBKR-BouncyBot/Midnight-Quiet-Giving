@@ -6,7 +6,7 @@ Keep your identity private from the recipient, and share verifiable evidence whe
 
 A graphic Midnight prototype showing a donor phone, a recipient phone and a tax-authority verifier. The recipient receives a donation without receiving the donor's taxpayer identifier. The donor keeps a private receipt and can deliberately disclose it to a separate verifier.
 
-[Open the app](https://ibkr-bouncybot.github.io/Midnight-Private-but-tax-compliant-donations/) · [Browser demo](https://ibkr-bouncybot.github.io/Midnight-Private-but-tax-compliant-donations/browser.html) · [Preview + Lace](https://ibkr-bouncybot.github.io/Midnight-Private-but-tax-compliant-donations/network.html)
+[Open the app](https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/) · [Browser demo](https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/browser.html) · [Preview + Lace](https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/network.html)
 
 ## Two ways to explore
 
@@ -64,6 +64,18 @@ Generated contract bindings and proving keys belong in ignored `contracts/manage
 - [Privacy, recovery and trust boundaries](docs/SECURITY.md)
 - [Verification and independent Lace testing](docs/VERIFICATION.md)
 - [GitHub Pages deployment](docs/DEPLOYMENT.md)
+
+## Buy me a coffee
+
+If Quiet Giving is useful to you, you can support IBKR-BouncyBot with an optional **NIGHT or ADA tip on Cardano mainnet**. Both demos remain free. This support address is separate from the app's Preview test wallets and is not part of the tax-receipt demonstration.
+
+<img src="src/assets/support-ada-qr.svg" width="220" height="220" alt="QR code for the Cardano mainnet NIGHT or ADA support address">
+
+```text
+addr1q85w2v474ywzx868s69pghygek3vrhxm69e7c6ysuf28qhv8kmj5wd059grxl82f8h5mtyzl87cvqj8ldv2e0las7tnsdej9ax
+```
+
+The [website's support section](https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/#support) also has a copy button.
 
 ## License
 

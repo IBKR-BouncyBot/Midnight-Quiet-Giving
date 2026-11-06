@@ -8,7 +8,7 @@ import { createStaticServer } from './serve.mjs';
 const root = resolve(import.meta.dirname, '..');
 const output = resolve(root, 'artifacts/browser');
 await mkdir(output, { recursive: true });
-const prefix = '/Midnight-Private-but-tax-compliant-donations';
+const prefix = '/Midnight-Quiet-Giving';
 const server = createStaticServer({ port: 0, prefix });
 await once(server, 'listening');
 const base = `http://127.0.0.1:${server.address().port}${prefix}/`;

@@ -4,10 +4,10 @@ import { NETWORK_DEFAULTS, resolveNativeBrowserConfig, requireDevelopmentNetwork
 import { nativeConnectionFailure, nativeConnectionErrorMessage } from '../lib/network/connection-errors.mjs';
 import { checkPreviewPublicServices, formatPreviewServiceError } from '../lib/network/public-testnet.mjs';
 
-const page = 'https://ibkr-bouncybot.github.io/Midnight-Private-but-tax-compliant-donations/network.html';
+const page = 'https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/network.html';
 test('Preview proving assets retain the actual GitHub project path', () => {
   const config = resolveNativeBrowserConfig(NETWORK_DEFAULTS.preview, `${page}#setup`);
-  assert.equal(config.compiledAssetsUrl, 'https://ibkr-bouncybot.github.io/Midnight-Private-but-tax-compliant-donations/network-contract');
+  assert.equal(config.compiledAssetsUrl, 'https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/network-contract');
   assert.equal(config.networkId, 'preview');
 });
 test('mainnet, cross-network endpoints and foreign proof material fail closed', () => {

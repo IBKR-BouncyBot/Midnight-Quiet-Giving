@@ -183,6 +183,7 @@ on('join', async () => {
 on('export-join', () => { download('donation-campaign.public.json', state.client.exportJoinFile()); status('Public campaign file downloaded. It contains recipient public keys, not donor identity or private openings.'); });
 on('mint', async () => { const result = await state.client.mint(1000); noteTransaction('1,000 test donation tokens minted', result); await refreshState(); status('The faucet transaction was accepted. Wait for Lace to synchronize its test-token balance before donating.'); });
 on('donation-form', async () => {
+  if (state.disclosure && !state.savedPrivate) invalid('Save your private receipt before making another donation. This session holds its only copy.');
   const units = Number($('donation-amount').value);
   if (!Number.isSafeInteger(units) || units < 1 || units > 1_000_000) invalid('Choose a whole amount from 1 through 1,000,000 test tokens.');
   const taxpayerId = $('taxpayer-label').value.trim();
@@ -207,6 +208,11 @@ on('export-private', () => {
 });
 on('export-public', () => { if (!state.selectedReceipt) invalid('Select a public receipt first.'); download('donation-receipt.public.json', state.selectedReceipt); status('Public receipt downloaded without private identity or opening.'); });
 on('private-file', async () => {
+  if (state.disclosure && !state.savedPrivate) {
+    // Clear the rejected selection so the same file can be selected after backup.
+    $('private-file').value = '';
+    invalid('Save your current private receipt before loading another. This session holds its only copy.');
+  }
   const packet = await readFile('private-file'); const checked = await verifyDisclosure(packet);
   if (!checked.valid || packet.receipt.mode !== 'network' || packet.receipt.networkId !== 'preview') invalid('This file is not a valid Preview private donation disclosure.');
   state.disclosure = packet; state.savedPrivate = true;
@@ -232,7 +238,11 @@ on('verify-disclosure', async () => {
   status('Authority demo check completed locally. Only the public contract address was queried; no private taxpayer data or opening was sent to the indexer or a government service.');
 });
 $('internal-prover-confirmed').addEventListener('change', syncControls);
-window.addEventListener('beforeunload', event => { if (state.disclosure && !state.savedPrivate) { event.preventDefault(); event.returnValue = ''; } });
+window.addEventListener('beforeunload', event => {
+  if (state.busy || state.client?.pendingDonation || (state.disclosure && !state.savedPrivate)) {
+    event.preventDefault(); event.returnValue = '';
+  }
+});
 window.addEventListener('pageshow', () => { if (!state.connection) { $('internal-prover-confirmed').checked = false; syncControls(); } });
 state.ready = true; refreshWallets();
 status('Preview client ready. Connect Lace to transact, or import a private receipt to verify it without a wallet. Nothing is sent automatically.');

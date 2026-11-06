@@ -24,5 +24,5 @@ export function createStaticServer({ directory = resolve(import.meta.dirname, '.
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
   const port = Number(process.env.PORT ?? 4180);
   const server = createStaticServer({ port });
-  server.on('listening', () => console.log(`Private Donations: http://127.0.0.1:${port}`));
+  server.on('listening', () => console.log(`Quiet Giving: http://127.0.0.1:${port}`));
 }

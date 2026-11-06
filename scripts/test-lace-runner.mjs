@@ -30,6 +30,18 @@ async function step(name, fn) {
   process.stdout.write(JSON.stringify({ stage: name, status: 'started' }) + '\n');
   const value = await fn(); report.stages.at(-1).completed = true; await save(); return value;
 }
+async function control(name, operation) {
+  report.currentControl = name; await save();
+  process.stdout.write(JSON.stringify({ stage, control: name, status: 'started' }) + '\n');
+  const result = await operation();
+  report.lastCompletedControl = name; delete report.currentControl; await save();
+  return result;
+}
+async function openSettings() {
+  if (!await visible(wallet.getByTestId('settings-tab-btn'))) await control('open-main-menu', () => wallet.getByTestId('main-menu-tab-btn').click());
+  await control('open-settings-tab', () => wallet.getByTestId('settings-tab-btn').click());
+  await control('wait-for-settings-options', () => wallet.getByTestId('option-list-item-network').waitFor());
+}
 function within(parent, target) { const rel = relative(parent, target); return rel && !rel.startsWith('..') && !isAbsolute(rel); }
 async function visible(locator) { return locator.isVisible().catch(() => false); }
 async function firstClick(page, choices) {
@@ -141,29 +153,28 @@ try {
     report.walletCreated = true;
   });
   await step('select-preview-network-in-lace', async () => {
-    await wallet.getByTestId('main-menu-tab-btn').click();
-    await wallet.getByText('Settings', { exact: true }).last().click();
-    await wallet.getByText('Network', { exact: true }).last().click();
-    await wallet.getByTestId('network-selection-sheet-network-type-radio-group').getByText('Testnet', { exact: true }).click();
+    await openSettings();
+    await control('open-network-settings', () => wallet.getByTestId('option-list-item-network').click());
+    await control('select-testnet-network-type', () => wallet.getByTestId('network-selection-sheet-network-type-radio-group').getByText('Testnet', { exact: true }).click());
     const midnightGroup = wallet.locator('[data-testid="network-selection-sheet-radio-group-Midnight"], [data-testid="network-selection-sheet-radio-group-midnight"]');
-    await midnightGroup.getByText('Preview', { exact: true }).click();
-    await wallet.getByTestId('network-selection-sheet-confirm-button').click();
+    await control('select-midnight-preview', () => midnightGroup.getByText('Preview', { exact: true }).click());
+    await control('confirm-preview-network', () => wallet.getByTestId('network-selection-sheet-confirm-button').click());
+    await control('wait-for-network-sheet-to-close', () => wallet.getByTestId('network-selection-sheet-header').waitFor({ state: 'hidden' }));
     report.previewSelectedInUI = true;
   });
   await step('select-real-internal-wasm-proving', async () => {
-    if (!await visible(wallet.getByText('Midnight', { exact: true }).last())) {
-      await wallet.getByTestId('main-menu-tab-btn').click(); await wallet.getByText('Settings', { exact: true }).last().click();
-    }
-    await wallet.getByText('Midnight', { exact: true }).last().click();
-    const radio = wallet.getByTestId('proof-server-in-process-radio'); await radio.click();
+    if (!await visible(wallet.getByTestId('option-list-item-midnight'))) await openSettings();
+    await control('open-midnight-settings', () => wallet.getByTestId('option-list-item-midnight').click());
+    const radio = wallet.getByTestId('proof-server-in-process-radio');
+    await control('select-internal-wasm-radio', () => radio.click());
     assert.equal(await radio.getAttribute('aria-checked'), 'true');
-    await wallet.getByTestId('save-configuration-button').click();
-    await wallet.getByTestId('midnight-settings-sheet-header').waitFor({ state: 'hidden' });
+    await control('save-internal-wasm-setting', () => wallet.getByTestId('save-configuration-button').click());
+    await control('wait-for-midnight-settings-to-close', () => wallet.getByTestId('midnight-settings-sheet-header').waitFor({ state: 'hidden' }));
     report.internalWasmSelectedInUI = true;
   });
   await step('connect-actual-lace-to-donation-page', async () => {
     app = await context.newPage(); await app.goto(`${origin}/network.html`);
-    await app.locator('#wallet-select option').filter({ hasText: /Lace/ }).waitFor();
+    await app.waitForFunction(() => [...document.querySelectorAll('#wallet-select option')].some(option => option.value && /Lace/.test(option.textContent)), undefined, { timeout: 90000 });
     await app.locator('#storage-password').fill(`A7!${randomBytes(32).toString('base64url')}qR`);
     await app.locator('#internal-prover-confirmed').check();
     await runWithApprovals(() => app.locator('#connect-wallet').click(), async () => /Lace connected/.test(await app.locator('#connection-status').textContent()), 180000);

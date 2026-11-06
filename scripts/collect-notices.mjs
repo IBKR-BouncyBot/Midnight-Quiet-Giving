@@ -15,7 +15,7 @@ export async function collectNotices(root, dist, inputs) {
       dir = dirname(dir);
     }
   }
-  const sections = ['Third-party software included in the Private Donations browser bundle.\nProject-owned source uses the license supplied in LICENSE.\n'];
+  const sections = ['Third-party software included in the Quiet Giving browser bundle.\nProject-owned source uses the license supplied in LICENSE.\n'];
   for (const { pkg, dir } of [...packages.values()].sort((a,b) => a.pkg.name.localeCompare(b.pkg.name))) {
     const files = (await readdir(dir)).filter(name => /^(licen[sc]e|copying|notice)(\.|$)/i.test(name));
     sections.push(`\n${'='.repeat(72)}\n${pkg.name} ${pkg.version}\nLicense: ${typeof pkg.license === 'string' ? pkg.license : 'See upstream package notices'}\n`);

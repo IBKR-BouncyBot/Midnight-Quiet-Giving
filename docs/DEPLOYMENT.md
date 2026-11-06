@@ -1,8 +1,8 @@
 # GitHub Pages deployment
 
-Source: https://github.com/IBKR-BouncyBot/Midnight-Private-but-tax-compliant-donations
+Source: https://github.com/IBKR-BouncyBot/Midnight-Quiet-Giving
 
-Frontend: https://ibkr-bouncybot.github.io/Midnight-Private-but-tax-compliant-donations/
+Frontend: https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/
 
 The `pages.yml` workflow installs the official pinned Compact compiler, installs the committed npm graph, compiles the donation contract and proof material, runs meaningful contract/privacy tests, builds native and network bundles, exercises the browser journey, and publishes `dist/` using GitHub Pages.
 
