@@ -20,8 +20,10 @@ const report = { schema: 'private-donations/real-lace-preview/v1', startedAt: ne
   walletCreated: false, walletConnected: false, seedReadOrExported: false, internalWasmSelectedInUI: false,
   internalWasmAttestedByConnector: false, testNightFunded: false, testDustAvailable: false,
   acceptedTransactions: [], privateArtifactsSaved: false, governmentEndpointContacted: false,
+  pageCrashObserved: false, unexpectedContextClosed: false, unexpectedBrowserDisconnected: false, extensionPageCloseCount: 0,
   observedExternalProofRequests: 0, status: 'running', stages: [] };
 let stage = 'runner-prerequisites', context, server, profile, runnerRoot, app, wallet, password;
+let cleaningUp = false;
 let lastAction = '';
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function save() { await mkdir(reportDirectory, { recursive: true }); await writeFile(join(reportDirectory, 'report.json'), JSON.stringify(report, null, 2) + '\n'); }
@@ -55,6 +57,45 @@ async function radioStructure() {
 async function clearRadioInteraction() {
   await wallet.getByTestId('proof-server-in-process-radio').press('Tab');
   await wallet.mouse.move(0, 0);
+}
+function navigationCategory(error) {
+  const message = String(error?.message ?? '');
+  if (/Target (page|context|browser).*closed|page has been closed|browser has been closed|context has been closed/i.test(message)) return 'browser-target-closed';
+  if (/ERR_ABORTED|Navigation.*interrupted/i.test(message)) return 'navigation-aborted';
+  if (/net::ERR_|Navigation failed/i.test(message)) return 'navigation-network-error';
+  if (/Timeout|timeout/.test(message)) return 'bounded-stage-timeout';
+  return null;
+}
+function safeExtensionRoute(page) {
+  try {
+    const url = new URL(page.url());
+    if (`${url.protocol}//${url.host}` !== extensionOrigin) return null;
+    return { path: url.pathname, queryParameterNames: [...new Set(url.searchParams.keys())].filter(name => /^[a-zA-Z0-9_-]{1,80}$/.test(name)) };
+  } catch { return null; }
+}
+async function reloadWallet() {
+  const previous = wallet;
+  report.walletNavigationBefore = safeExtensionRoute(previous);
+  // Preserve the actual Lace URL rather than changing routes. A real extension
+  // view transition may replace this page, so detect its replacement below.
+  try { await previous.reload({ waitUntil: 'domcontentloaded', timeout: 90000 }); }
+  catch (error) {
+    const category = navigationCategory(error);
+    if (!['browser-target-closed', 'navigation-aborted'].includes(category)) throw error;
+    report.walletReloadTransition = category;
+  }
+  await waitUntil(async () => {
+    const pages = context.pages().filter(page => !page.isClosed() && page.url().startsWith(extensionOrigin));
+    for (const page of [previous, ...pages.filter(page => page !== previous)]) {
+      if (!page.isClosed() && await visible(page.getByTestId('main-menu-tab-btn'))) {
+        wallet = page;
+        report.walletPageReplacedOnReload = page !== previous;
+        report.walletNavigationAfter = safeExtensionRoute(page);
+        return true;
+      }
+    }
+    return false;
+  }, 90000, 500);
 }
 async function proofSettingsControls() {
   return wallet.locator('[data-testid]').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width && node.getBoundingClientRect().height)
@@ -202,11 +243,24 @@ try {
       args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`, '--no-first-run'],
       acceptDownloads: false, locale: 'en-US' });
     context.setDefaultTimeout(20000);
+    context.on('close', () => { if (!cleaningUp) report.unexpectedContextClosed = true; });
+    context.browser()?.on('disconnected', () => { if (!cleaningUp) report.unexpectedBrowserDisconnected = true; });
+    const trackedPages = new WeakSet();
+    const trackPageLifecycle = page => {
+      if (trackedPages.has(page)) return;
+      trackedPages.add(page);
+      page.on('crash', () => { if (!cleaningUp) report.pageCrashObserved = true; });
+      page.on('close', () => { if (!cleaningUp && page.url().startsWith(extensionOrigin)) report.extensionPageCloseCount++; });
+    };
+    context.pages().forEach(trackPageLifecycle);
+    context.on('page', trackPageLifecycle);
     context.on('request', request => {
       try { const url = new URL(request.url()); if (/proofserver|prover/i.test(url.hostname) && !['127.0.0.1', 'localhost'].includes(url.hostname)) report.observedExternalProofRequests++; } catch { /* no payloads */ }
     });
     const worker = context.serviceWorkers().find(worker => worker.url().startsWith(extensionOrigin)) ?? await context.waitForEvent('serviceworker', { timeout: 90000 });
     assert.ok(worker.url().startsWith(extensionOrigin)); report.realExtension = true;
+    // Keep a normal application tab open throughout extension window transitions.
+    app = await context.newPage(); await app.goto(`${origin}/network.html`);
     wallet = context.pages().find(page => page.url().startsWith(extensionOrigin)) ?? await context.newPage();
     if (!wallet.url().startsWith(extensionOrigin)) await wallet.goto(`${extensionOrigin}/expo/index.html`);
     await wallet.getByTestId('onboarding-start-create-wallet-button').waitFor({ timeout: 90000 });
@@ -248,21 +302,21 @@ try {
     await control('complete-internal-wasm-settings-save', completeProofSettingsSave);
     // A new page mount discards the settings component's local useState value.
     // The following selection therefore comes from the persisted wallet config.
-    await control('reload-wallet-to-verify-persisted-proving', () => wallet.goto(`${extensionOrigin}/expo/index.html`));
+    await control('reload-wallet-to-verify-persisted-proving', reloadWallet);
     await control('wait-for-reloaded-wallet', () => wallet.getByTestId('main-menu-tab-btn').waitFor({ timeout: 90000 }));
     await openSettings();
     await control('reopen-midnight-settings-to-check-persistence', () => wallet.getByTestId('option-list-item-midnight').click());
-    await control('wait-for-persisted-proof-settings', () => radio.waitFor());
+    await control('wait-for-persisted-proof-settings', () => wallet.getByTestId('proof-server-in-process-radio').waitFor());
     await control('clear-persisted-radio-hover-and-focus', clearRadioInteraction);
     await control('verify-persisted-internal-wasm-selection', () => wallet.getByTestId('proof-server-in-process-radio-checkmark').waitFor());
     report.persistedProofControlStructure = await radioStructure();
-    await control('reload-wallet-after-persistence-check', () => wallet.goto(`${extensionOrigin}/expo/index.html`));
+    await control('reload-wallet-after-persistence-check', reloadWallet);
     await control('wait-for-verified-wallet-page', () => wallet.getByTestId('main-menu-tab-btn').waitFor({ timeout: 90000 }));
     report.internalWasmSelectionEvidence = 'persisted-unfocused-unhovered-radio-checkmark';
     report.internalWasmSelectedInUI = true;
   });
   await step('connect-actual-lace-to-donation-page', async () => {
-    app = await context.newPage(); await app.goto(`${origin}/network.html`);
+    await app.bringToFront();
     await app.waitForFunction(() => [...document.querySelectorAll('#wallet-select option')].some(option => option.value && /Lace/.test(option.textContent)), undefined, { timeout: 90000 });
     await app.locator('#storage-password').fill(`A7!${randomBytes(32).toString('base64url')}qR`);
     await app.locator('#internal-prover-confirmed').check();
@@ -308,7 +362,7 @@ try {
     report.testNightFunded = true; await faucet.close();
   });
   await step('register-night-for-test-dust-in-lace', async () => {
-    await wallet.goto(`${extensionOrigin}/expo/index.html`);
+    await reloadWallet();
     const generate = wallet.getByTestId('account-card-generate-dust-button').first();
     await generate.waitFor({ timeout: 120000 });
     await runWithApprovals(() => generate.click(), async () => {
@@ -343,8 +397,7 @@ try {
   report.failureCategory = /human-challenge/.test(message) ? 'official-faucet-requires-human-challenge'
     : /faucet-rate-limit/.test(message) ? 'official-faucet-rate-limit'
     : /faucet-service-unavailable/.test(message) ? 'official-faucet-service-unavailable'
-    : /Timeout|timeout/.test(message) ? 'bounded-stage-timeout'
-    : /credential|runner|recovery/.test(message) ? 'isolated-runner-safety-boundary' : 'stage-failed';
+    : navigationCategory(error) ?? (/credential|runner|recovery/.test(message) ? 'isolated-runner-safety-boundary' : 'stage-failed');
   report.lastApprovedControl = lastAction || null;
   if (wallet) {
     report.failedProofControlStructure = await radioStructure();
@@ -355,6 +408,7 @@ try {
     .map(node => node.getAttribute('data-testid')).filter(value => /^[a-zA-Z0-9_-]{1,100}$/.test(value)).slice(0,100)).catch(() => []);
   if (context) report.extensionPageDiagnostics = await Promise.all(context.pages().filter(page => page.url().startsWith(extensionOrigin)).map(async (page, index) => ({
     index,
+    route: safeExtensionRoute(page),
     visibleControls: await page.locator('[data-testid]').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width && node.getBoundingClientRect().height)
       .map(node => node.getAttribute('data-testid')).filter(value => /^[a-zA-Z0-9_-]{1,100}$/.test(value)).slice(0, 100)).catch(() => []),
     authenticationVisible: await visible(page.getByTestId('authentication-prompt-input-value')),
@@ -366,6 +420,7 @@ try {
   }
   await save(); process.exitCode = 1;
 } finally {
+  cleaningUp = true;
   password = undefined;
   await context?.close().catch(() => {});
   if (server) await new Promise(resolve => server.close(resolve));
