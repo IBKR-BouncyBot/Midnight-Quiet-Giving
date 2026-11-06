@@ -312,7 +312,9 @@ try {
   await step('connect-actual-lace-to-donation-page', async () => {
     await app.bringToFront();
     await control('refresh-app-after-wallet-setup', () => app.reload({ waitUntil: 'domcontentloaded' }));
-    await control('discover-initialized-lace', () => app.waitForFunction(() => [...document.querySelectorAll('#wallet-select option')].some(option => option.value && /Lace/.test(option.textContent)), undefined, { timeout: 90000 }));
+    await control('wait-for-real-lace-injection', () => app.waitForFunction(() => Object.values(window.midnight ?? {}).some(value => value?.rdns === 'io.lace.wallet' && /^4\./.test(value.apiVersion) && typeof value.connect === 'function'), undefined, { timeout: 90000 }));
+    await control('refresh-installed-wallet-list', () => app.locator('#refresh-wallets').click());
+    await control('discover-initialized-lace', () => app.waitForFunction(() => [...document.querySelectorAll('#wallet-select option')].some(option => option.value && /lace/i.test(option.textContent)), undefined, { timeout: 90000 }));
     await app.locator('#storage-password').fill(`A7!${randomBytes(32).toString('base64url')}qR`);
     await app.locator('#internal-prover-confirmed').check();
     await runWithApprovals(() => app.locator('#connect-wallet').click(), async () => /Lace connected/.test(await app.locator('#connection-status').textContent()), 180000);
@@ -419,7 +421,7 @@ try {
     report.applicationConnectionStatus = await app.locator('#connection-status').textContent().catch(() => null);
     report.walletDiscovery = await app.evaluate(() => Object.values(window.midnight ?? {}).map(value => ({
       isLace: value?.rdns === 'io.lace.wallet',
-      apiVersion: typeof value?.apiVersion === 'string' && /^\d+\.\d+\.\d+$/.test(value.apiVersion) ? value.apiVersion : null,
+      apiVersion: typeof value?.apiVersion === 'string' && value.apiVersion.length <= 80 && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(value.apiVersion) ? value.apiVersion : null,
       hasConnect: typeof value?.connect === 'function',
     }))).catch(() => []);
   }
