@@ -8,6 +8,8 @@ A graphic Midnight prototype showing a donor phone, a recipient phone and a tax-
 
 [Open the app](https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/) · [Browser demo](https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/browser.html) · [Preview + Lace](https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/network.html)
 
+![Quiet Giving: a donor sends a private donation to a recipient and separately shares a private receipt directly with the tax-authority demonstration verifier. Browser-local checks and Preview plus Lace transactions are distinct.](docs/assets/quiet-giving-explained.svg)
+
 ## Two ways to explore
 
 | Mode | What it does | What you need |

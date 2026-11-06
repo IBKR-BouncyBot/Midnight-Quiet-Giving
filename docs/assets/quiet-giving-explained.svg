@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="740" viewBox="0 0 1200 740" role="img" aria-labelledby="title description">
+  <title id="title">Quiet Giving — Give privately. Prove your donation.</title>
+  <desc id="description">A donor phone sends a donation to a recipient phone without a taxpayer label. A separate path goes directly from the donor to the tax-authority demonstration server, carrying the private receipt only when the donor chooses. The browser demo runs local Compact checks with simulated token movement. Preview and Lace use valueless test tokens. This is not a government service or a guarantee of tax acceptance.</desc>
+  <defs>
+    <linearGradient id="device" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#363640"/><stop offset="1" stop-color="#141419"/></linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#191922"/><stop offset="1" stop-color="#101014"/></linearGradient>
+    <linearGradient id="rack" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#30303d"/><stop offset="1" stop-color="#17171e"/></linearGradient>
+    <marker id="blue-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="m2 1 6 4-6 4" fill="none" stroke="#9393ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="receipt-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="m2 1 6 4-6 4" fill="none" stroke="#c7c7df" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <pattern id="vents" width="5" height="12" patternUnits="userSpaceOnUse"><rect width="2" height="12" fill="#656579"/></pattern>
+  </defs>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect width="1200" height="740" rx="8" fill="#0a0a0a"/>
+    <rect x=".5" y=".5" width="1199" height="739" rx="8" fill="none" stroke="#34343b"/>
+    <circle cx="63" cy="54" r="19" fill="none" stroke="#686874"/>
+    <g stroke="#eeeef6" stroke-width="1.5" fill="none" stroke-linejoin="round"><rect x="57" y="53" width="12" height="10" rx="1.5"/><path d="M59 53v-4a4 4 0 0 1 8 0v4m-4 4v2"/></g>
+    <text x="95" y="63" font-size="32" font-weight="600" fill="#ffffff" letter-spacing="-.8">Quiet Giving</text>
+    <text x="1151" y="58" font-size="11" fill="#9b9bad" letter-spacing="2" text-anchor="end">BUILT WITH MIDNIGHT</text>
+    <text x="46" y="109" font-size="28" fill="#ffffff" letter-spacing="-.6">Give privately. Prove your donation.</text>
+    <text x="46" y="137" font-size="14" fill="#b4b4c5">Keep your identity private from the recipient, and share verifiable evidence when you choose.</text>
+    <path d="M46 157h1108" stroke="#303037"/>
+
+    <text x="67" y="188" font-size="12" fill="#b9b9ce" letter-spacing="1.4">01 / THE DONOR</text>
+    <text x="470" y="188" font-size="12" fill="#b9b9ce" letter-spacing="1.4">02 / THE RECIPIENT</text>
+    <text x="894" y="188" font-size="12" fill="#b9b9ce" letter-spacing="1.4">03 / AUTHORITY DEMO</text>
+
+    <!-- The two paths originate at the donor, never at the recipient. -->
+    <path d="M283 349h176" stroke="#9393ff" stroke-width="2" fill="none" marker-end="url(#blue-arrow)"/>
+    <text x="371" y="325" font-size="12" fill="#bcbcff" text-anchor="middle" letter-spacing="1">DONATION</text>
+    <text x="371" y="376" font-size="12" fill="#9999b2" text-anchor="middle">No taxpayer label</text>
+    <path d="M275 465h41a16 16 0 0 1 16 16v53a16 16 0 0 0 16 16h479a16 16 0 0 0 16-16V434a16 16 0 0 1 16-16h25" stroke="#b5b5cd" stroke-width="1.7" stroke-dasharray="6 5" fill="none" marker-end="url(#receipt-arrow)"/>
+    <rect x="394" y="530" width="384" height="42" rx="4" fill="#0a0a0a"/>
+    <text x="586" y="547" text-anchor="middle" font-size="12" fill="#e0e0ee" letter-spacing=".8">PRIVATE RECEIPT, SHARED BY THE DONOR</text>
+    <text x="586" y="567" text-anchor="middle" font-size="12" fill="#9696ad">A separate, deliberate disclosure to the verifier</text>
+
+    <!-- Donor phone -->
+    <rect x="65" y="204" width="210" height="297" rx="27" fill="url(#device)" stroke="#777783"/>
+    <rect x="74" y="213" width="192" height="279" rx="20" fill="#111116" stroke="#343440"/>
+    <rect x="144" y="222" width="52" height="7" rx="4" fill="#060608"/>
+    <text x="91" y="231" font-size="9" fill="#aaaabc">9:41</text>
+    <rect x="235" y="224" width="12" height="6" rx="1" fill="none" stroke="#89899c"/><rect x="236" y="225" width="8" height="4" fill="#89899c"/>
+    <g fill="none" stroke="#c1c1ff" stroke-width="1.4"><rect x="93" y="253" width="11" height="10" rx="1"/><path d="M95 253v-3a3.5 3.5 0 0 1 7 0v3"/></g>
+    <text x="115" y="263" font-size="14" font-weight="600" fill="#f5f5fc">Your private wallet</text>
+    <text x="92" y="292" font-size="11" fill="#a4a4b9">Demo taxpayer label</text>
+    <rect x="92" y="301" width="157" height="32" rx="3" fill="#1d1d25" stroke="#414150"/>
+    <text x="102" y="322" font-size="13" fill="#ededf7">DEMO-ALICE</text>
+    <text x="92" y="380" font-size="43" fill="#ffffff" letter-spacing="-1.5">125</text>
+    <text x="94" y="400" font-size="10" fill="#9393aa" letter-spacing=".8">TEST TOKENS</text>
+    <rect x="92" y="418" width="157" height="35" rx="3" fill="#0000fe"/>
+    <text x="170" y="440" text-anchor="middle" font-size="12" fill="#ffffff">Donate privately →</text>
+    <text x="170" y="476" text-anchor="middle" font-size="10" fill="#9898af">Private opening kept by you</text>
+    <text x="170" y="524" text-anchor="middle" font-size="12" fill="#a4a4b9">You control when to disclose.</text>
+
+    <!-- Recipient phone -->
+    <rect x="468" y="204" width="210" height="297" rx="27" fill="url(#device)" stroke="#777783"/>
+    <rect x="477" y="213" width="192" height="279" rx="20" fill="url(#screen)" stroke="#343440"/>
+    <rect x="547" y="222" width="52" height="7" rx="4" fill="#060608"/>
+    <text x="494" y="231" font-size="9" fill="#aaaabc">9:41</text>
+    <rect x="638" y="224" width="12" height="6" rx="1" fill="none" stroke="#89899c"/><rect x="639" y="225" width="8" height="4" fill="#89899c"/>
+    <circle cx="573" cy="270" r="19" fill="#26263d" stroke="#535370"/>
+    <path d="M573 279c-12-8-12-16-6-16 3 0 5 2 6 4 1-2 3-4 6-4 6 0 6 8-6 16Z" fill="none" stroke="#cccce9" stroke-width="1.6"/>
+    <text x="573" y="310" text-anchor="middle" font-size="14" fill="#f1f1fa">Community kitchen</text>
+    <text x="573" y="333" text-anchor="middle" font-size="10" fill="#a0a0b6" letter-spacing=".6">DONATION RECEIVED</text>
+    <text x="573" y="379" text-anchor="middle" font-size="43" fill="#ffffff" letter-spacing="-1.5">+125</text>
+    <text x="573" y="400" text-anchor="middle" font-size="10" fill="#9393aa" letter-spacing=".8">TEST TOKENS</text>
+    <path d="M494 418h158" stroke="#3e3e4f"/>
+    <text x="494" y="441" font-size="11" fill="#9999b1">Donor</text>
+    <text x="652" y="441" text-anchor="end" font-size="12" fill="#ddddef">Anonymous</text>
+    <rect x="493" y="454" width="160" height="25" rx="3" fill="#16231d" stroke="#3b5b4c"/>
+    <text x="573" y="471" text-anchor="middle" font-size="10" fill="#bbe6ce">No taxpayer label or opening</text>
+    <text x="573" y="524" text-anchor="middle" font-size="12" fill="#a4a4b9">The cause gets the donation.</text>
+
+    <!-- Authority server: the lower donor path enters this server directly. -->
+    <rect x="893" y="224" width="244" height="267" rx="10" fill="url(#rack)" stroke="#797987"/>
+    <rect x="908" y="240" width="214" height="30" rx="4" fill="#20202b" stroke="#535362"/>
+    <circle cx="921" cy="255" r="2.4" fill="#a5ebc5"/><circle cx="929" cy="255" r="2.4" fill="#628b76"/>
+    <rect x="1038" y="250" width="66" height="10" fill="url(#vents)"/>
+    <rect x="908" y="280" width="214" height="30" rx="4" fill="#20202b" stroke="#535362"/>
+    <circle cx="921" cy="295" r="2.4" fill="#a5ebc5"/><circle cx="929" cy="295" r="2.4" fill="#628b76"/>
+    <rect x="1038" y="290" width="66" height="10" fill="url(#vents)"/>
+    <text x="910" y="334" font-size="14" fill="#eeeeF7">Tax receipt verifier</text>
+    <circle cx="1110" cy="329" r="3" fill="#a5ebc5"/>
+    <rect x="908" y="349" width="214" height="123" rx="4" fill="#11111b" stroke="#476352"/>
+    <text x="920" y="370" font-size="10" fill="#a2a2bb" letter-spacing=".5">DELIBERATELY SHARED EVIDENCE</text>
+    <text x="920" y="394" font-size="13" fill="#c9eedb">DEMO-ALICE · 125 TEST</text>
+    <text x="920" y="416" font-size="12" fill="#c3c3d7">Recipient + time window</text>
+    <text x="920" y="443" font-size="11" fill="#a5a5bd">Receipt opening checked against</text>
+    <text x="920" y="460" font-size="11" fill="#a5a5bd">the recorded commitment</text>
+    <text x="1015" y="518" text-anchor="middle" font-size="12" fill="#a4a4b9">A local demonstration verifier.</text>
+
+    <!-- The two available modes are deliberately distinguished. -->
+    <rect x="46" y="595" width="1108" height="83" rx="4" fill="#111114" stroke="#3a3a45"/>
+    <path d="M600 612v49" stroke="#3a3a45"/>
+    <circle cx="69" cy="617" r="3" fill="#0000fe"/>
+    <text x="82" y="621" font-size="11" fill="#bcbcd1" letter-spacing="1.2">BROWSER DEMO</text>
+    <text x="66" y="644" font-size="14" fill="#eeeeF7">Actual Compact checks · simulated token movement</text>
+    <text x="66" y="664" font-size="12" fill="#9797ad">No wallet, generated ZK proof or blockchain transaction.</text>
+    <circle cx="624" cy="617" r="3" fill="#0000fe"/>
+    <text x="637" y="621" font-size="11" fill="#bcbcd1" letter-spacing="1.2">PREVIEW + LACE</text>
+    <text x="621" y="644" font-size="14" fill="#eeeeF7">Shielded test tokens · wallet-approved transactions</text>
+    <text x="621" y="664" font-size="12" fill="#9797ad">Valueless donation tokens. Network fees use test DUST.</text>
+    <text x="46" y="705" font-size="12" fill="#9e9eb2">Not a government endpoint. A valid receipt does not establish legal identity, deductibility or official tax acceptance.</text>
+    <text x="46" y="725" font-size="10" fill="#77778c">Fictional example · Independent Midnight research · IBKR-BouncyBot</text>
+  </g>
+</svg>
