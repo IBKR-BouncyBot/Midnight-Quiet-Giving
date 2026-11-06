@@ -175,7 +175,7 @@ async function approveWalletPages() {
         await control(`approve-wallet-${id}`, () => target.click()); lastAction = id; return;
       }
     }
-    for (const label of [/^Connect$/, /^Approve$/, /^Confirm$/, /^Sign$/, /^Generate DUST$/, /^Generate dust$/, /^Confirm transaction$/]) {
+    for (const label of [/^Connect$/, /^Approve$/, /^Confirm$/, /^Sign$/, /^Confirm transaction$/]) {
       const target = page.getByRole('button', { name: label }).first();
       if (await visible(target) && await target.isEnabled()) {
         report.walletPromptState = 'approval';
@@ -311,7 +311,8 @@ try {
   });
   await step('connect-actual-lace-to-donation-page', async () => {
     await app.bringToFront();
-    await app.waitForFunction(() => [...document.querySelectorAll('#wallet-select option')].some(option => option.value && /Lace/.test(option.textContent)), undefined, { timeout: 90000 });
+    await control('refresh-app-after-wallet-setup', () => app.reload({ waitUntil: 'domcontentloaded' }));
+    await control('discover-initialized-lace', () => app.waitForFunction(() => [...document.querySelectorAll('#wallet-select option')].some(option => option.value && /Lace/.test(option.textContent)), undefined, { timeout: 90000 }));
     await app.locator('#storage-password').fill(`A7!${randomBytes(32).toString('base64url')}qR`);
     await app.locator('#internal-prover-confirmed').check();
     await runWithApprovals(() => app.locator('#connect-wallet').click(), async () => /Lace connected/.test(await app.locator('#connection-status').textContent()), 180000);
@@ -415,6 +416,12 @@ try {
   if (app) {
     await collectTransactions().catch(() => {});
     report.applicationStatus = await app.locator('#network-status').textContent().catch(() => null);
+    report.applicationConnectionStatus = await app.locator('#connection-status').textContent().catch(() => null);
+    report.walletDiscovery = await app.evaluate(() => Object.values(window.midnight ?? {}).map(value => ({
+      isLace: value?.rdns === 'io.lace.wallet',
+      apiVersion: typeof value?.apiVersion === 'string' && /^\d+\.\d+\.\d+$/.test(value.apiVersion) ? value.apiVersion : null,
+      hasConnect: typeof value?.connect === 'function',
+    }))).catch(() => []);
   }
   await save(); process.exitCode = 1;
 } finally {
