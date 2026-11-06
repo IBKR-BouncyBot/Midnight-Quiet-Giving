@@ -42,6 +42,20 @@ async function openSettings() {
   await control('open-settings-tab', () => wallet.getByTestId('settings-tab-btn').click());
   await control('wait-for-settings-options', () => wallet.getByTestId('option-list-item-network').waitFor());
 }
+async function radioStructure() {
+  return wallet.getByTestId('proof-server-in-process-radio').evaluate(node => [node, ...node.querySelectorAll('[data-testid], [role]')].slice(0, 20).map(element => ({
+    tag: element.tagName,
+    testId: element.getAttribute('data-testid'),
+    role: element.getAttribute('role'),
+    ariaSelected: element.getAttribute('aria-selected'),
+    ariaChecked: element.getAttribute('aria-checked'),
+    ariaDisabled: element.getAttribute('aria-disabled'),
+  }))).catch(() => []);
+}
+async function clearRadioInteraction() {
+  await wallet.getByTestId('proof-server-in-process-radio').press('Tab');
+  await wallet.mouse.move(0, 0);
+}
 function within(parent, target) { const rel = relative(parent, target); return rel && !rel.startsWith('..') && !isAbsolute(rel); }
 async function visible(locator) { return locator.isVisible().catch(() => false); }
 async function firstClick(page, choices) {
@@ -65,17 +79,54 @@ async function approveWalletPages() {
   for (const page of context.pages().filter(page => page.url().startsWith(extensionOrigin))) {
     // Never open recovery/backup routes or collect their contents.
     if (await visible(page.getByTestId('recovery-phrase-words'))) throw new Error('unexpected-recovery-display');
+    // Lace's authentication sheet overlays the still-visible connector/review
+    // controls. Finish this exact prompt before touching anything behind it.
+    const authentication = page.getByTestId('authentication-prompt-input-value');
+    const authenticationConfirm = page.getByTestId('authentication-prompt-button-confirm');
+    if (await visible(authentication) || await visible(authenticationConfirm)) {
+      report.walletPromptState = 'authentication';
+      if (await visible(authentication) && await authentication.isEditable()) await authentication.fill(password);
+      if (await visible(authenticationConfirm) && await authenticationConfirm.isEnabled()) {
+        await control('confirm-fresh-wallet-authentication', () => authenticationConfirm.click());
+        lastAction = 'authentication-prompt-button-confirm';
+      }
+      return;
+    }
+    // The Midnight authorization page requires an explicit account selection,
+    // even for the only account in this new disposable wallet.
+    if (page.url().includes('midnight-authorize-dapp')) {
+      const primary = page.getByTestId('dapp-connector-primary-button');
+      const dropdown = page.getByTestId('dropdown-button');
+      if (await visible(primary) && !await primary.isEnabled() && await visible(dropdown)) {
+        report.walletPromptState = 'account-selection';
+        const firstAccount = page.getByTestId('dropdown-menu-item-0');
+        if (!await visible(firstAccount)) await control('open-fresh-midnight-account-menu', () => dropdown.click());
+        await firstAccount.waitFor();
+        if (await visible(page.getByTestId('dropdown-menu-item-1'))) throw new Error('unexpected-extra-account-in-fresh-wallet');
+        await control('select-fresh-midnight-account', () => firstAccount.click());
+        return;
+      }
+    }
     const fields = page.locator('input[type="password"]');
     if (await fields.count() === 1 && await visible(fields.first())) await fields.first().fill(password);
-    for (const id of ['dapp-connector-primary-button', 'confirm-button', 'confirm-btn', 'sign-transaction-submit']) {
+    const stageControls = stage === 'register-night-for-test-dust-in-lace' ? ['designate-button', 'confirm-designation-button'] : [];
+    for (const id of [...stageControls, 'dapp-connector-primary-button', 'confirm-button', 'confirm-btn', 'sign-transaction-submit']) {
       const target = page.getByTestId(id);
-      if (await visible(target) && await target.isEnabled()) { await target.click(); lastAction = id; return; }
+      if (await visible(target) && await target.isEnabled()) {
+        report.walletPromptState = 'approval';
+        await control(`approve-wallet-${id}`, () => target.click()); lastAction = id; return;
+      }
     }
     for (const label of [/^Connect$/, /^Approve$/, /^Confirm$/, /^Sign$/, /^Generate DUST$/, /^Generate dust$/, /^Confirm transaction$/]) {
       const target = page.getByRole('button', { name: label }).first();
-      if (await visible(target) && await target.isEnabled()) { await target.click(); lastAction = String(label); return; }
+      if (await visible(target) && await target.isEnabled()) {
+        report.walletPromptState = 'approval';
+        await control(`approve-wallet-${label.source.replace(/[^a-zA-Z]/g, '').toLowerCase()}`, () => target.click());
+        lastAction = String(label); return;
+      }
     }
   }
+  report.walletPromptState = 'waiting';
 }
 async function runWithApprovals(operation, predicate, timeout = 480000) {
   await operation();
@@ -167,11 +218,22 @@ try {
     await control('open-midnight-settings', () => wallet.getByTestId('option-list-item-midnight').click());
     const radio = wallet.getByTestId('proof-server-in-process-radio');
     await control('select-internal-wasm-radio', () => radio.click());
-    // Lace's reviewed RadioButton uses accessibilityState.selected, which
-    // React Native Web exposes as aria-selected (not aria-checked).
-    await control('verify-internal-wasm-selection', () => waitUntil(async () => await radio.getAttribute('aria-selected') === 'true', 20000, 100));
+    // This Lace bundle drops accessibilityState in its React Native Web layer.
+    // Its checkmark is shown for selected OR focused OR hovered radios, so clear
+    // both interaction states before inspecting the source-defined checkmark.
+    await control('clear-radio-hover-and-focus', clearRadioInteraction);
+    await control('verify-internal-wasm-selection', () => wallet.getByTestId('proof-server-in-process-radio-checkmark').waitFor());
+    report.selectedProofControlStructure = await radioStructure();
     await control('save-internal-wasm-setting', () => wallet.getByTestId('save-configuration-button').click());
     await control('wait-for-midnight-settings-to-close', () => wallet.getByTestId('midnight-settings-sheet-header').waitFor({ state: 'hidden' }));
+    await control('reopen-midnight-settings-to-check-persistence', () => wallet.getByTestId('option-list-item-midnight').click());
+    await control('wait-for-persisted-proof-settings', () => radio.waitFor());
+    await control('clear-persisted-radio-hover-and-focus', clearRadioInteraction);
+    await control('verify-persisted-internal-wasm-selection', () => wallet.getByTestId('proof-server-in-process-radio-checkmark').waitFor());
+    report.persistedProofControlStructure = await radioStructure();
+    await control('close-verified-midnight-settings', () => wallet.getByTestId('save-configuration-button').click());
+    await control('wait-for-verified-settings-to-close', () => wallet.getByTestId('midnight-settings-sheet-header').waitFor({ state: 'hidden' }));
+    report.internalWasmSelectionEvidence = 'persisted-unfocused-unhovered-radio-checkmark';
     report.internalWasmSelectedInUI = true;
   });
   await step('connect-actual-lace-to-donation-page', async () => {
@@ -259,9 +321,17 @@ try {
     : /Timeout|timeout/.test(message) ? 'bounded-stage-timeout'
     : /credential|runner|recovery/.test(message) ? 'isolated-runner-safety-boundary' : 'stage-failed';
   report.lastApprovedControl = lastAction || null;
+  if (wallet) report.failedProofControlStructure = await radioStructure();
   // Structural diagnostics only: no body text, input values, screenshots or logs.
   if (wallet) report.visibleExtensionControls = await wallet.locator('[data-testid]').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width && node.getBoundingClientRect().height)
     .map(node => node.getAttribute('data-testid')).filter(value => /^[a-zA-Z0-9_-]{1,100}$/.test(value)).slice(0,100)).catch(() => []);
+  if (context) report.extensionPageDiagnostics = await Promise.all(context.pages().filter(page => page.url().startsWith(extensionOrigin)).map(async (page, index) => ({
+    index,
+    visibleControls: await page.locator('[data-testid]').evaluateAll(nodes => nodes.filter(node => node.getBoundingClientRect().width && node.getBoundingClientRect().height)
+      .map(node => node.getAttribute('data-testid')).filter(value => /^[a-zA-Z0-9_-]{1,100}$/.test(value)).slice(0, 100)).catch(() => []),
+    authenticationVisible: await visible(page.getByTestId('authentication-prompt-input-value')),
+    connectorApprovalVisible: await visible(page.getByTestId('dapp-connector-primary-button')),
+  })));
   if (app) {
     await collectTransactions().catch(() => {});
     report.applicationStatus = await app.locator('#network-status').textContent().catch(() => null);
