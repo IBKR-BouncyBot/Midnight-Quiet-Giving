@@ -15,6 +15,7 @@ const reportDirectory = join(root, 'artifacts/lace-preview');
 const extensionId = 'gafhhkghbfjjkeiendhlofajokpaflmk';
 const extensionOrigin = `chrome-extension://${extensionId}`;
 const faucetUrl = 'https://midnight-tmnight-preview.nethermind.dev/';
+const vendorFlagsUrl = 'https://e.lw.iog.io/flags/?v=2&config=true';
 const report = { schema: 'private-donations/real-lace-preview/v1', startedAt: new Date().toISOString(),
   network: 'preview', extensionVersion: '2.5.1', extensionId, realExtension: false, injectedWalletAdapter: false,
   walletCreated: false, walletConnected: false, seedReadOrExported: false, internalWasmSelectedInUI: false,
@@ -25,7 +26,14 @@ const report = { schema: 'private-donations/real-lace-preview/v1', startedAt: ne
 let stage = 'runner-prerequisites', context, server, profile, runnerRoot, app, wallet, password;
 let cleaningUp = false;
 let lastAction = '';
+let vendorServices;
+const vendorResponseTasks = [];
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function bounded(promise, milliseconds, code) {
+  let timer;
+  try { return await Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(code)), milliseconds); })]); }
+  finally { clearTimeout(timer); }
+}
 async function save() { await mkdir(reportDirectory, { recursive: true }); await writeFile(join(reportDirectory, 'report.json'), JSON.stringify(report, null, 2) + '\n'); }
 async function step(name, fn) {
   stage = name; report.currentStage = name; report.stages.push({ name, startedAt: new Date().toISOString() }); await save();
@@ -55,8 +63,13 @@ async function radioStructure() {
   }))).catch(() => []);
 }
 async function clearRadioInteraction() {
-  await wallet.getByTestId('proof-server-in-process-radio').press('Tab');
   await wallet.mouse.move(0, 0);
+  await wallet.getByTestId('save-configuration-button').focus();
+}
+async function inProcessRadioSelected() {
+  return wallet.getByTestId('proof-server-in-process-radio').evaluate(element =>
+    !element.matches(':hover, :active, :focus-within')
+    && element.querySelector('[data-testid="proof-server-in-process-radio-checkmark"]') !== null);
 }
 function navigationCategory(error) {
   const message = String(error?.message ?? '');
@@ -74,6 +87,110 @@ async function extensionWorkerHealth() {
   const workers = context?.serviceWorkers().filter(worker => worker.url().startsWith(extensionOrigin)) ?? [];
   const liveness = await Promise.all(workers.map(worker => Promise.race([worker.evaluate(() => true).catch(() => false), pause(3000).then(() => false)])));
   return { count: workers.length, liveCount: liveness.filter(Boolean).length };
+}
+function redactServiceUrl(value) {
+  const url = new URL(value);
+  return { origin: url.origin, pathname: url.pathname, queryParameterNames: [...url.searchParams.keys()].sort() };
+}
+function previewVendorService(value, kind) {
+  const url = new URL(value);
+  const expectedHost = kind === 'indexer' ? 'midnight-preview.blockfrost.io' : 'rpc.midnight-preview.blockfrost.io';
+  const expectedPath = kind === 'indexer' ? '/api/v0' : '/';
+  if (typeof value !== 'string' || value.length > 1024 || url.protocol !== 'https:' || url.hostname !== expectedHost
+    || url.pathname !== expectedPath || url.port || url.username || url.password || url.hash
+    || [...url.searchParams.keys()].join('|') !== 'project_id' || !url.searchParams.get('project_id')) throw new Error('invalid-vendor-preview-service');
+  const websocket = new URL(url);
+  websocket.protocol = 'wss:'; websocket.pathname = websocket.pathname.replace(/\/+$/, '') + '/ws';
+  return { http: url.href, websocket: websocket.href };
+}
+async function observeVendorConfiguration(response) {
+  const observation = { status: response.status(), flagCount: 0, previewIndexerOverride: false, previewNodeOverride: false, usable: false };
+  report.vendorConfigurationResponses ??= [];
+  report.vendorConfigurationResponses.push(observation);
+  report.vendorConfigurationResponses = report.vendorConfigurationResponses.slice(-8);
+  try {
+    if (!response.ok()) return;
+    const bytes = await bounded(response.body(), 30000, 'vendor-response-timeout');
+    if (bytes.length > 1024 * 1024) throw new Error('oversized-vendor-response');
+    const body = JSON.parse(bytes.toString('utf8'));
+    observation.flagCount = Object.keys(body.flags ?? {}).length;
+    observation.computationError = Boolean(body.errorsWhileComputingFlags);
+    observation.featureFlagsQuotaLimited = Array.isArray(body.quotaLimited) && body.quotaLimited.includes('feature_flags');
+    const services = {};
+    for (const [kind, key] of [['indexer', 'BLOCKCHAIN_MIDNIGHT_INDEXER_URLS'], ['node', 'BLOCKCHAIN_MIDNIGHT_NODE_URLS']]) {
+      const flag = body.flags?.[key];
+      if (flag?.enabled !== true) continue;
+      const payload = typeof flag.metadata?.payload === 'string' ? JSON.parse(flag.metadata.payload) : flag.metadata?.payload;
+      services[kind] = previewVendorService(payload?.preview, kind);
+      observation[kind === 'indexer' ? 'previewIndexerOverride' : 'previewNodeOverride'] = true;
+    }
+    if (services.indexer && services.node && !observation.computationError && !observation.featureFlagsQuotaLimited) {
+      vendorServices = services; observation.usable = true;
+      report.vendorServiceConfiguration = { source: 'observed-normal-wallet-vendor-response', queryValuesExported: false,
+        indexer: redactServiceUrl(services.indexer.http), node: redactServiceUrl(services.node.http) };
+    }
+  } catch { observation.parseOrValidationFailed = true; }
+}
+async function enableIsolatedExtensionDeveloperMode() {
+  const manager = await context.newPage(); await manager.goto('chrome://extensions/');
+  const developerMode = manager.locator('extensions-toolbar #devMode');
+  await developerMode.waitFor();
+  if (!await developerMode.evaluate(element => element.checked)) await developerMode.click();
+  if (!await developerMode.evaluate(element => element.checked)) throw new Error('isolated-extension-developer-mode-unavailable');
+  const extensionToggle = manager.locator(`extensions-item#${extensionId} #enableToggle`);
+  await extensionToggle.waitFor();
+  if (!await extensionToggle.evaluate(element => element.checked) && await extensionToggle.isEnabled()) await extensionToggle.click();
+  if (!await extensionToggle.evaluate(element => element.checked)) throw new Error('verified-extension-not-enabled');
+  report.isolatedExtensionDeveloperModeEnabled = true;
+  await manager.close();
+}
+async function cycleNormalExtensionViews() {
+  // Lace applies newly fetched feature flags when every extension view closes.
+  // Use its normal background reload and canonical tab-opening browser API.
+  for (const page of context.pages().filter(page => page.url().startsWith(extensionOrigin))) await page.close();
+  await pause(2500);
+  let worker;
+  await waitUntil(async () => {
+    worker = context.serviceWorkers().find(value => value.url().startsWith(extensionOrigin));
+    return worker && await worker.evaluate(() => true).catch(() => false);
+  }, 90000, 500);
+  await worker.evaluate(() => chrome.tabs.create({ url: chrome.runtime.getURL('expo/index.html'), active: true }).then(() => true));
+  await waitUntil(async () => {
+    for (const page of context.pages().filter(page => page.url().startsWith(extensionOrigin))) {
+      if (await visible(page.getByTestId('onboarding-start-create-wallet-button'))) { wallet = page; return true; }
+    }
+    return false;
+  }, 90000, 500);
+  report.vendorConfigurationViewCycles = (report.vendorConfigurationViewCycles ?? 0) + 1;
+}
+async function applyNormalVendorConfiguration() {
+  // The browser may finish its first vendor response before launch returns and
+  // response listeners can be attached. Closing the normal views asks Lace to
+  // refresh through its own supported lifecycle, without replaying the request.
+  if (!vendorServices) await control('refresh-vendor-flags-through-normal-view-cycle', cycleNormalExtensionViews);
+  await waitUntil(() => Boolean(vendorServices), 120000, 500);
+  await control('apply-vendor-flags-through-normal-view-cycle', cycleNormalExtensionViews);
+  report.vendorConfigurationViewCycleCompleted = true;
+}
+async function checkConfiguredWalletIndexer() {
+  await Promise.all(vendorResponseTasks);
+  if (!vendorServices) throw new Error('normal-wallet-vendor-configuration-unavailable');
+  const configuration = await app.evaluate(() => window.__privateDonationsLaceAudit.getConfiguration());
+  if (configuration.networkId !== 'preview' || new URL(configuration.indexerUri).href !== vendorServices.indexer.http
+    || new URL(configuration.indexerWsUri).href !== vendorServices.indexer.websocket
+    || ![vendorServices.node.http, vendorServices.node.websocket].includes(new URL(configuration.substrateNodeUri).href)) throw new Error('wallet-vendor-services-not-applied');
+  report.walletServices = { networkId: configuration.networkId, queryValuesExported: false,
+    indexer: redactServiceUrl(configuration.indexerUri), indexerWs: redactServiceUrl(configuration.indexerWsUri),
+    node: redactServiceUrl(configuration.substrateNodeUri) };
+  report.vendorServiceConfigurationApplied = true;
+  const response = await fetch(configuration.indexerUri, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(30000),
+    headers: { 'content-type': 'application/json' }, body: JSON.stringify({ query: 'query CiPublicHead { block { height } }' }) });
+  report.walletIndexerHealth = { checkedBeforeFunding: true, status: response.status, walletSyncAttested: false };
+  if (!response.ok) throw new Error('wallet-indexer-unavailable-before-funding');
+  const body = await response.json().catch(() => { throw new Error('wallet-indexer-unavailable-invalid-response'); });
+  if (body.errors || !Number.isSafeInteger(body?.data?.block?.height) || body.data.block.height < 0) throw new Error('wallet-indexer-unavailable-before-funding');
+  report.walletIndexerHealth.blockHeight = body.data.block.height;
+  report.walletIndexerHealth.ready = true;
 }
 function safeExtensionRoute(page) {
   try {
@@ -95,22 +212,10 @@ async function proofSettingsControls() {
       ariaDisabled: node.getAttribute('aria-disabled'), disabled: node.hasAttribute('disabled'), focused: document.activeElement === node })).slice(0, 80)).catch(() => []);
 }
 async function completeProofSettingsSave() {
-  const header = wallet.getByTestId('midnight-settings-sheet-header');
-  const saveButton = wallet.getByTestId('save-configuration-button');
-  // The reviewed settings effect emits its override and savingCompleted in one
-  // sequence. Allow the connector round trip before inspecting the rendered
-  // idle state; never dismiss an actively disabled/Saving form.
-  await pause(2000);
-  await waitUntil(async () => !await visible(header) || await visible(saveButton) && await saveButton.isEnabled(), 180000, 500);
-  report.proofSettingsAfterSave = await proofSettingsControls();
-  if (await visible(header)) {
-    if (await visible(wallet.getByTestId('proof-server-disclosure-message'))) throw new Error('unexpected-proof-server-disclosure');
-    await control('close-saved-proof-settings-sheet', closeProofSettings);
-    report.proofSettingsSaveOutcome = 'normal-close-control';
-  } else {
-    await wallet.getByTestId('proof-server-in-process-radio').waitFor({ state: 'detached' });
-    report.proofSettingsSaveOutcome = 'sheet-closed-automatically';
-  }
+  // A successful normal Save closes the sheet. Do not hide an ignored Save by
+  // manually closing its still-unsaved local selection.
+  await wallet.getByTestId('proof-server-in-process-radio').waitFor({ state: 'detached', timeout: 45000 });
+  report.proofSettingsSaveOutcome = 'sheet-closed-automatically';
 }
 function within(parent, target) { const rel = relative(parent, target); return rel && !rel.startsWith('..') && !isAbsolute(rel); }
 async function visible(locator) { return locator.isVisible().catch(() => false); }
@@ -240,6 +345,11 @@ try {
       args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`, '--no-first-run'],
       acceptDownloads: false, locale: 'en-US' });
     context.setDefaultTimeout(20000);
+    context.on('response', response => {
+      if (response.url() === vendorFlagsUrl && response.request().method() === 'POST') {
+        vendorResponseTasks.push(observeVendorConfiguration(response));
+      }
+    });
     context.on('close', () => { if (!cleaningUp) report.unexpectedContextClosed = true; });
     context.browser()?.on('disconnected', () => { if (!cleaningUp) report.unexpectedBrowserDisconnected = true; });
     const trackedPages = new WeakSet();
@@ -254,7 +364,9 @@ try {
     context.on('request', request => {
       try { const url = new URL(request.url()); if (/proofserver|prover/i.test(url.hostname) && !['127.0.0.1', 'localhost'].includes(url.hostname)) report.observedExternalProofRequests++; } catch { /* no payloads */ }
     });
-    const worker = context.serviceWorkers().find(worker => worker.url().startsWith(extensionOrigin)) ?? await context.waitForEvent('serviceworker', { timeout: 90000 });
+    await control('enable-isolated-extension-developer-mode', enableIsolatedExtensionDeveloperMode);
+    const worker = context.serviceWorkers().find(worker => worker.url().startsWith(extensionOrigin)) ?? await context.waitForEvent('serviceworker', {
+      predicate: worker => worker.url().startsWith(extensionOrigin), timeout: 90000 });
     assert.ok(worker.url().startsWith(extensionOrigin)); report.realExtension = true;
     // Keep a normal application tab open throughout extension window transitions.
     app = await context.newPage(); await app.goto(`${origin}/network.html`);
@@ -262,6 +374,7 @@ try {
     if (!wallet.url().startsWith(extensionOrigin)) await wallet.goto(`${extensionOrigin}/expo/index.html`);
     await wallet.getByTestId('onboarding-start-create-wallet-button').waitFor({ timeout: 90000 });
   });
+  await step('apply-genuine-wallet-vendor-service-configuration', applyNormalVendorConfiguration);
   await step('create-fresh-ephemeral-wallet', async () => {
     await wallet.getByTestId('onboarding-start-create-wallet-button').click();
     await input('new-password-input', password); await input('confirm-password-input', password);
@@ -293,16 +406,19 @@ try {
     // Its checkmark is shown for selected OR focused OR hovered radios, so clear
     // both interaction states before inspecting the source-defined checkmark.
     await control('clear-radio-hover-and-focus', clearRadioInteraction);
-    await control('verify-internal-wasm-selection', () => wallet.getByTestId('proof-server-in-process-radio-checkmark').waitFor());
+    await control('verify-internal-wasm-selection', () => waitUntil(inProcessRadioSelected, 20000, 100));
     report.selectedProofControlStructure = await radioStructure();
-    await control('save-internal-wasm-setting', () => wallet.getByTestId('save-configuration-button').click());
+    // Proven against the real signed Lace build: focus the Save root, allow its
+    // React press handler to settle, then use its ordinary Enter activation.
+    await control('settle-focused-proof-settings-save', () => pause(1000));
+    await control('save-internal-wasm-setting', () => wallet.getByTestId('save-configuration-button').press('Enter'));
     await control('complete-internal-wasm-settings-save', completeProofSettingsSave);
     // Detachment discards the settings component's local useState value. The
     // reopened sheet initializes its selection from the wallet configuration.
     await control('reopen-midnight-settings-to-check-persistence', () => wallet.getByTestId('option-list-item-midnight').click());
     await control('wait-for-persisted-proof-settings', () => wallet.getByTestId('proof-server-in-process-radio').waitFor());
     await control('clear-persisted-radio-hover-and-focus', clearRadioInteraction);
-    await control('verify-persisted-internal-wasm-selection', () => wallet.getByTestId('proof-server-in-process-radio-checkmark').waitFor());
+    await control('verify-persisted-internal-wasm-selection', () => waitUntil(inProcessRadioSelected, 20000, 100));
     report.persistedProofControlStructure = await radioStructure();
     await control('close-verified-proof-settings-sheet', closeProofSettings);
     await control('return-to-wallet-portfolio', () => wallet.getByTestId('portfolio-tab-btn').click());
@@ -333,6 +449,7 @@ try {
     const configuration = await app.evaluate(() => window.__privateDonationsLaceAudit.getConfiguration());
     assert.equal(configuration.networkId, 'preview');
   });
+  await step('check-real-wallet-indexer-before-funding', checkConfiguredWalletIndexer);
   await step('request-free-preview-night-from-official-faucet', async () => {
     const faucet = await context.newPage(); await faucet.goto(faucetUrl, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await control('fill-official-faucet-address', () => faucet.locator('#address').fill(report.freshTestAddress));
@@ -397,6 +514,7 @@ try {
     : /faucet-rate-limit/.test(message) ? 'official-faucet-rate-limit'
     : /faucet-service-unavailable/.test(message) ? 'official-faucet-service-unavailable'
     : /extension-worker-unavailable/.test(message) ? 'extension-worker-unavailable'
+    : /vendor|wallet-indexer-unavailable/.test(message) ? 'wallet-service-configuration-unavailable'
     : navigationCategory(error) ?? (/credential|runner|recovery/.test(message) ? 'isolated-runner-safety-boundary' : 'stage-failed');
   report.lastApprovedControl = lastAction || null;
   if (context) report.extensionWorkersAtFailure = await extensionWorkerHealth();
@@ -417,8 +535,14 @@ try {
   })));
   if (app) {
     await collectTransactions().catch(() => {});
-    report.applicationStatus = await app.locator('#network-status').textContent().catch(() => null);
-    report.applicationConnectionStatus = await app.locator('#connection-status').textContent().catch(() => null);
+    // Export categories only: an unexpected upstream error could otherwise put
+    // a configured service URL (including its query value) into UI status text.
+    const applicationStatus = await app.locator('#network-status').textContent().catch(() => '');
+    report.applicationStatus = /Preview client ready/.test(applicationStatus) ? 'preview-client-ready'
+      : /unavailable|failed|error/i.test(applicationStatus) ? 'ui-error-or-unavailable' : 'other-ui-status';
+    const connectionStatus = await app.locator('#connection-status').textContent().catch(() => '');
+    report.applicationConnectionStatus = /Lace connected/.test(connectionStatus) ? 'lace-connected'
+      : /Lace found/.test(connectionStatus) ? 'lace-found' : 'not-connected';
     report.walletDiscovery = await app.evaluate(() => Object.values(window.midnight ?? {}).map(value => ({
       isLace: value?.rdns === 'io.lace.wallet',
       apiVersion: typeof value?.apiVersion === 'string' && value.apiVersion.length <= 80 && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(value.apiVersion) ? value.apiVersion : null,

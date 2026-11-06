@@ -1,6 +1,6 @@
 {
   "schema": "quiet-giving/lace-verification/v1",
-  "summary": "Official signed Lace 2.5.1 and fresh Preview wallet exercised. Saved internal WASM selection passed once but failed on repeat; no wallet connection, funding or accepted transaction is established.",
+  "summary": "Official signed Lace 2.5.1 connected to Quiet Giving in a fresh local Preview wallet; internal WASM persisted and the current wallet indexer returned HTTP 200. Funding is pending; no accepted donation transaction is established.",
   "scope": "Curated public setup evidence only; not end-to-end donation acceptance.",
   "runs": [
     {
@@ -55,5 +55,78 @@
       "privateArtifactsSaved": false,
       "ephemeralProfileRemoved": true
     }
-  ]
+  ],
+  "localTest": {
+    "schema": "quiet-giving/local-lace-acceptance/v1",
+    "startedAt": "2026-11-06T20:59:12.161Z",
+    "network": "preview",
+    "extensionVersion": "2.5.1",
+    "archiveSha256": "aa6d59550362a3bbcbef343dffd783621150a7971307116bb11fe0d94b754708",
+    "realExtension": true,
+    "freshWallet": true,
+    "injectedAdapter": false,
+    "privateArtifactsPublished": false,
+    "acceptedTransactions": [],
+    "chromium": "156.0.8078.4",
+    "previewSelectedInUi": true,
+    "internalWasmSelectedInUi": true,
+    "internalWasmPersisted": true,
+    "walletConnected": true,
+    "connectorApiVersion": "4.1.0-canary.20260819082604-3b622cb",
+    "networkId": "preview",
+    "publicEndpoints": [
+      {
+        "field": "indexerUri",
+        "host": "midnight-preview.blockfrost.io",
+        "path": "/api/v0",
+        "parameterNames": [
+          "project_id"
+        ]
+      },
+      {
+        "field": "indexerWsUri",
+        "host": "midnight-preview.blockfrost.io",
+        "path": "/api/v0/ws",
+        "parameterNames": [
+          "project_id"
+        ]
+      },
+      {
+        "field": "substrateNodeUri",
+        "host": "rpc.midnight-preview.blockfrost.io",
+        "path": "/",
+        "parameterNames": [
+          "project_id"
+        ]
+      }
+    ],
+    "freshTestAddress": "mn_addr_preview1qw78jpl7zdh24mdeyevv5kwdq3as5kqy6mu3yvv59knxgdzewrqq3vxnlt",
+    "configurationComparison": {
+      "headlessNormalBrowserFlagCount": 0,
+      "separateSameRequestFlagCount": 43,
+      "headedNormalBrowserFlagCount": 43,
+      "identityModified": false,
+      "configurationInjected": false,
+      "causeOfDifferenceEstablished": false
+    },
+    "normalVendorFlags": {
+      "count": 43,
+      "networkOverrides": true,
+      "appliedByUnmodifiedWallet": true
+    },
+    "execution": "isolated-local-headed-Chromium-with-real-Lace",
+    "status": "awaiting-test-funding",
+    "observedAt": "2026-11-06T21:30:59.260Z",
+    "sourceCommit": "7d8438539d1b020e40b430fefb96af906481dc0e",
+    "walletIndexerHttpStatus": 200,
+    "applicationPublicServiceCheck": {
+      "passed": true,
+      "blockHeight": 1629652
+    },
+    "testNightFunded": false,
+    "testDustAvailable": false,
+    "seedReadOrExported": false,
+    "faucetHumanVerificationRequired": true,
+    "privateProfileRetainedForContinuation": true
+  }
 }
