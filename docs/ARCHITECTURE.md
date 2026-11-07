@@ -30,7 +30,7 @@ The tax demonstration uses private evidence sharing, not a second zero-knowledge
 
 The local demo executes generated Compact JavaScript backed by actual Midnight WebAssembly. Its coin-flow checks are native execution, but wallet balances, received totals and local state are illustrative. There is no consensus or proof generation in that mode.
 
-The testnet bundle uses Midnight.js 4.1.1 and DApp Connector API 4. It accepts Preview, rejects mainnet, checks the connected account before sensitive calls, and requires explicit confirmation of Lace's internal WASM setting. Reported external prover URLs are rejected. API 4 cannot independently attest internal proving mode; the setting and extension traffic must be inspected during a real Lace test.
+The testnet bundle targets Preview ledger 9 with Midnight.js 5.0.0 and DApp Connector API 4.1.0. It accepts Preview, rejects mainnet, checks the connected account before sensitive calls, and requires explicit confirmation of Lace's internal WASM setting. Each provider carries its network and transaction expiry; transactions and serialized contract state must belong to ledger 9. Compiled artifacts are checked against the compiler's integrity manifest, whose hash is pinned into the browser bundle. Ledger 9 private state uses a separate encrypted store. Reported external prover URLs are rejected. API 4.1 cannot independently attest internal proving mode; the setting and extension traffic must be inspected during a real Lace test.
 
 ## Hosting
 

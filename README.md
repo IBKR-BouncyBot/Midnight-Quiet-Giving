@@ -15,11 +15,13 @@ A graphic Midnight prototype showing a donor phone, a recipient phone and a tax-
 | Mode | What it does | What you need |
 | --- | --- | --- |
 | Browser demo | Executes the generated Compact contract and Midnight WebAssembly locally. Try donations, private disclosures, tamper detection and public exports. Balances are illustrative. | A modern browser; no wallet or tokens. |
-| Preview + Lace | Connects the real API-4 wallet, deploys or joins a donation contract, mints valueless test tokens, and requests actual shielded donation transactions. Lace handles proofs and approvals. | Lace on Preview, usable test DUST, internal WASM proving, and the recipient's shielded public keys. |
+| Preview + Lace | Targets the new ledger 9 Preview chain through the real API-4.1 wallet connector. Deploy or join a fresh donation contract, mint valueless test tokens, and request shielded donation transactions. Lace handles proofs and approvals. | A ledger 9-compatible Lace wallet on Preview, newly funded test NIGHT registered for DUST, internal WASM proving, and the recipient's current shielded public keys. |
 
 The browser demo generates no zero-knowledge proof and submits no transaction. The network client reports proving, submission and confirmation separately. GitHub Pages hosts the frontend; it does not run a tax server, prover or blockchain node. See [verification](docs/VERIFICATION.md) for what has actually been tested.
 
-**Verification status:** the browser journey and separate real WASM proof-generation checks pass. A full donation through Lace on Preview remains unverified; the isolated real-extension runs stopped during wallet setup.
+**Verification status:** earlier browser journeys and separate WASM proof-generation checks passed on the previous toolchain. Those results do not verify the ledger 9 migration. A complete donation through Lace on the new Preview chain remains unverified; see the [verification record](docs/VERIFICATION.md) for current checks and blockers.
+
+**Preview restarted on 6 November 2026.** Midnight reset Preview as a new ledger 9 chain; old balances, DUST registrations, contracts and transaction history were erased. Request fresh test NIGHT for your current Preview address, register it for DUST again, and let Lace synchronize before using a newly deployed donation contract. Old campaign files and receipts cannot verify donations on the replacement chain. The network ID and endpoints stay the same. If Lace cannot synchronize, wait for its Preview services to recover before retrying. See Midnight's [reset instructions](https://docs.midnight.network/relnotes/ledger-9).
 
 ## Try the browser demo
 
@@ -42,7 +44,7 @@ The identifier is self-entered, so this proves no legal identity. A recipient pu
 
 The project follows BallotLab, Agent AI Wallet and ReviewLab: locally hosted Outfit, Midnight's dark palette and electric-blue controls, ordinary GitHub Pages, and pinned Midnight libraries.
 
-Use Node.js 24, Compact compiler 0.31.1, compact-runtime 0.16.0 and Midnight.js 4.1.1. Windows compilation uses WSL; Linux can use the official `compact` launcher.
+This branch targets ledger 9 Preview with Node.js 24, Compact compiler 0.36.0 (`language_version` 0.28.0), compact-runtime 0.21.0, Midnight.js 5.0.0 and DApp Connector API 4.1.0. Windows compilation uses WSL; Linux can use the official `compact` launcher. The [Midnight compatibility matrix](https://docs.midnight.network/support-matrix) distinguishes the new Preview stack from ledger 8 Preprod; do not mix their artifacts or dependencies.
 
 ```sh
 npm ci --ignore-scripts

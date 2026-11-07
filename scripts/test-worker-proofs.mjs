@@ -10,7 +10,7 @@ import { copyFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { setTimeout as pause } from 'node:timers/promises';
-import { build } from 'esbuild';
+import { build, version as esbuildVersion } from 'esbuild';
 import { chromium } from 'playwright';
 import { nativeWasmPlugin } from './native-wasm-plugin.mjs';
 import { createStaticServer } from './serve.mjs';
@@ -63,14 +63,16 @@ async function parameters(manifest, offline) {
 try {
   assert(process.argv.slice(2).every((value, index) => index === 0 && value === '--offline'));
   await mkdir(directory, { recursive: true });
-  const zkirPackage = JSON.parse(await readFile(join(root, 'node_modules/@midnight-ntwrk/zkir-v2/package.json'), 'utf8'));
+  const zkirPackage = JSON.parse(await readFile(join(root, 'node_modules/@midnight-ntwrk/zkir-v3/package.json'), 'utf8'));
   const runtimePackage = JSON.parse(await readFile(join(root, 'node_modules/@midnight-ntwrk/compact-runtime/package.json'), 'utf8'));
-  assert.equal(zkirPackage.version, '2.1.1'); assert.equal(runtimePackage.version, '0.16.0');
-  report.versions = { zkir: zkirPackage.version, compactRuntime: runtimePackage.version, compilerTarget: '0.31.1' };
+  assert.equal(zkirPackage.version, '3.2.0'); assert.equal(runtimePackage.version, '0.21.0');
+  const manifest = JSON.parse(await readFile(join(root, 'contracts/managed/donations/compiler/contract-manifest.json'), 'utf8'));
+  assert.equal(manifest['compiler-version'], '0.36.0'); assert.equal(manifest['runtime-version'], runtimePackage.version);
+  report.versions = { zkir: zkirPackage.version, compactRuntime: runtimePackage.version, compilerTarget: manifest['compiler-version'], language: manifest['language-version'], esbuild: esbuildVersion };
   const sources = ['scripts/test-worker-proofs.mjs', 'scripts/native-wasm-plugin.mjs', 'scripts/serve.mjs',
     'tests/worker-proofs/worker.mjs', 'tests/worker-proofs/page.mjs', 'tests/worker-proofs/index.html',
-    'tests/worker-proofs/public-assets.json', 'lib/native-engine.mjs', 'contracts/donations.compact',
-    'contracts/managed/donations/contract/index.js', 'package-lock.json'];
+    'tests/worker-proofs/public-assets.json', 'lib/native-engine.mjs', 'lib/receipt.mjs', 'contracts/donations.compact',
+    'contracts/managed/donations/contract/index.js', 'contracts/managed/donations/compiler/contract-manifest.json', 'package-lock.json'];
   for (const path of sources) report.sourceHashes[path] = sha256(await readFile(join(root, path)));
   stage = 'public-parameters';
   await parameters(JSON.parse(await readFile(join(fixture, 'public-assets.json'), 'utf8')), process.argv.includes('--offline'));
@@ -78,7 +80,8 @@ try {
   for (const name of names) for (const [folder, extension] of [['keys', 'prover'], ['keys', 'verifier'], ['zkir', 'bzkir']]) {
     const source = join(root, 'contracts/managed/donations', folder, `${name}.${extension}`);
     const path = join(directory, 'assets/contract', folder, `${name}.${extension}`);
-    const bytes = await readFile(source); assert(bytes.length > 0);
+    const bytes = await readFile(source), expected = manifest[folder]?.[`${name}.${extension}`];
+    assert(expected?.type === 'file'); assert.equal(bytes.length, expected.size); assert.equal(sha256(bytes), expected.hash);
     await mkdir(dirname(path), { recursive: true }); await writeFile(path, bytes); await recordAsset(path, bytes);
   }
   stage = 'worker-bundle';
@@ -94,7 +97,7 @@ try {
     } })],
   });
   assert.equal(result.warnings.length, 0);
-  assert(Object.keys(result.metafile.inputs).some(path => path.includes('zkir-v2/midnight_zkir_wasm.js')));
+  assert(Object.keys(result.metafile.inputs).some(path => path.includes('zkir-v3/midnight_zkir_wasm.js')));
   assert(Object.keys(result.metafile.inputs).some(path => path.endsWith('managed/donations/contract/index.js')));
   assert(!Object.values(result.metafile.outputs).flatMap(value => value.imports).some(item => item.external));
   assert(wasm.size >= 2);

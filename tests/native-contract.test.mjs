@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createNativeHarness, createDonationLab, randomHex32, bytes, hex, taxpayerDigestFor, verifyDisclosure, commitmentForDisclosure, validatePublicRecord } from '../lib/native-engine.mjs';
+import { createNativeHarness, createDonationLab, randomHex32, bytes, hex, taxpayerDigestFor, verifyDisclosure, commitmentForDisclosure, validatePublicReceipt, validatePublicRecord } from '../lib/native-engine.mjs';
 
 const NOW = 1_799_395_200;
 async function fixture() {
@@ -19,8 +19,8 @@ async function labFixture() {
 
 test('generated Compact executes a full shielded transfer to the immutable recipient', async () => {
   const { native, coin, id, donate } = await fixture();
-  const result = donate();
-  const zswap = result.context.currentZswapLocalState;
+  const result = await donate();
+  const zswap = result.context.callContext.currentZswapLocalState;
   assert.equal(native.state().totalDonations, 1n);
   assert.equal(native.state().receipts.member(id), true);
   assert.equal(zswap.inputs.length, 1);
@@ -36,7 +36,7 @@ test('generated Compact executes a full shielded transfer to the immutable recip
 test('contract rejects wrong tokens and invalid amounts without recording a receipt', async () => {
   for (const changes of [{ color: bytes(randomHex32()) }, { value: 0n }, { value: 1000001n }]) {
     const { native, coin, args, inputs } = await fixture();
-    assert.throws(() => native.call('donate', [{ ...coin, ...changes }, ...args.slice(1)], inputs), /test token|Donation amount/);
+    await assert.rejects(() => native.call('donate', [{ ...coin, ...changes }, ...args.slice(1)], inputs), /test token|Donation amount/);
     assert.equal(native.state().totalDonations, 0n);
     assert.equal(native.state().receipts.size(), 0n);
   }
@@ -44,44 +44,57 @@ test('contract rejects wrong tokens and invalid amounts without recording a rece
 
 test('receipt ids and donation nonces cannot be reused', async () => {
   const { native, coin, args, inputs, donate } = await fixture();
-  donate();
-  assert.throws(donate, /Receipt id already used/);
-  assert.throws(() => native.call('donate', [coin, bytes(randomHex32()), ...args.slice(2)], inputs), /coin nonce already used/);
+  await donate();
+  await assert.rejects(donate, /Receipt id already used/);
+  await assert.rejects(() => native.call('donate', [coin, bytes(randomHex32()), ...args.slice(2)], inputs), /coin nonce already used/);
   assert.equal(native.state().totalDonations, 1n);
+});
+
+test('concurrent async circuit calls cannot reuse a receipt or lose state updates', async () => {
+  const { native, coin, args, inputs, donate } = await fixture();
+  const results = await Promise.allSettled([donate(), donate()]);
+  assert.deepEqual(results.map(result => result.status), ['fulfilled', 'rejected']);
+  assert.match(results[1].reason.message, /Receipt id already used/);
+  const next = [
+    { ...coin, nonce: bytes(randomHex32()) }, bytes(randomHex32()), ...args.slice(2),
+  ];
+  await native.call('donate', next, inputs);
+  assert.equal(native.state().totalDonations, 2n);
+  assert.equal(native.state().receipts.size(), 2n);
 });
 
 test('contract rejects missing private evidence and empty receipt/coin identifiers', async () => {
   for (const field of ['donorSecret', 'taxpayerDigest', 'receiptSalt']) {
     const { native, args, inputs } = await fixture();
-    assert.throws(() => native.call('donate', args, { ...inputs, [field]: new Uint8Array(32) }), /required/);
+    await assert.rejects(() => native.call('donate', args, { ...inputs, [field]: new Uint8Array(32) }), /required/);
     assert.equal(native.state().totalDonations, 0n);
   }
   const { native, coin, args, inputs } = await fixture();
-  assert.throws(() => native.call('donate', [coin, new Uint8Array(32), ...args.slice(2)], inputs), /Receipt id required/);
-  assert.throws(() => native.call('donate', [{ ...coin, nonce: new Uint8Array(32) }, ...args.slice(1)], inputs), /Fresh donation coin required/);
+  await assert.rejects(() => native.call('donate', [coin, new Uint8Array(32), ...args.slice(2)], inputs), /Receipt id required/);
+  await assert.rejects(() => native.call('donate', [{ ...coin, nonce: new Uint8Array(32) }, ...args.slice(1)], inputs), /Fresh donation coin required/);
 });
 
 test('block time and a bounded validity window are constrained by the contract', async () => {
   const { native, coin, id, inputs } = await fixture();
-  assert.throws(() => native.call('donate', [coin, id, BigInt(NOW + 1), BigInt(NOW + 1200)], inputs), /outside its validity window/);
-  assert.throws(() => native.call('donate', [coin, id, BigInt(NOW - 1200), BigInt(NOW)], inputs), /outside its validity window/);
-  assert.throws(() => native.call('donate', [coin, id, BigInt(NOW), BigInt(NOW + 1801)], inputs), /at most thirty minutes/);
-  assert.throws(() => native.call('donate', [coin, id, BigInt(NOW), BigInt(NOW)], inputs), /at most thirty minutes/);
+  await assert.rejects(() => native.call('donate', [coin, id, BigInt(NOW + 1), BigInt(NOW + 1200)], inputs), /outside its validity window/);
+  await assert.rejects(() => native.call('donate', [coin, id, BigInt(NOW - 1200), BigInt(NOW)], inputs), /outside its validity window/);
+  await assert.rejects(() => native.call('donate', [coin, id, BigInt(NOW), BigInt(NOW + 1801)], inputs), /at most thirty minutes/);
+  await assert.rejects(() => native.call('donate', [coin, id, BigInt(NOW), BigInt(NOW)], inputs), /at most thirty minutes/);
   assert.equal(native.state().totalDonations, 0n);
 });
 
 test('test faucet mints its own token, checks limits and prevents nonce reuse', async () => {
   const native = await createNativeHarness({ now: NOW });
   const receiver = { bytes: bytes(randomHex32()) }, nonce = bytes(randomHex32());
-  const result = native.call('mint', [receiver, 500n, nonce]);
-  const output = result.context.currentZswapLocalState.outputs[0];
+  const result = await native.call('mint', [receiver, 500n, nonce]);
+  const output = result.context.callContext.currentZswapLocalState.outputs[0];
   assert.equal(output.coinInfo.value, 500n);
   assert.equal(hex(output.coinInfo.color), hex(native.pure.testTokenColor(bytes(native.contractAddress))));
   assert.equal(hex(output.recipient.left.bytes), hex(receiver.bytes));
   assert.equal(native.state().totalMints, 1n);
-  assert.throws(() => native.call('mint', [receiver, 500n, nonce]), /nonce already used/);
-  assert.throws(() => native.call('mint', [receiver, 1000001n, bytes(randomHex32())]), /Mint amount/);
-  assert.throws(() => native.call('mint', [{ bytes: new Uint8Array(32) }, 500n, bytes(randomHex32())]), /Recipient key/);
+  await assert.rejects(() => native.call('mint', [receiver, 500n, nonce]), /nonce already used/);
+  await assert.rejects(() => native.call('mint', [receiver, 1000001n, bytes(randomHex32())]), /Mint amount/);
+  await assert.rejects(() => native.call('mint', [{ bytes: new Uint8Array(32) }, 500n, bytes(randomHex32())]), /Recipient key/);
 });
 
 test('browser lab supports two donors and separate recipients with real commitments', async () => {
@@ -161,4 +174,14 @@ test('each donation uses fresh private receipt material even for the same taxpay
   assert.notEqual(next.receipt.commitment, packet.receipt.commitment);
   const clone = lab.getOpening(next.receipt.receiptId); clone.taxpayerId = 'changed';
   assert.equal(lab.getOpening(next.receipt.receiptId).taxpayerId, 'DEMO-ALICE');
+});
+
+test('network receipts accept ledger transaction identifiers without confusing them with hashes', async () => {
+  const { packet } = await labFixture();
+  const receipt = { ...packet.receipt, mode: 'network', networkId: 'preview', txId: `00${randomHex32()}`, blockHeight: '123' };
+  assert.equal(validatePublicReceipt(receipt), receipt);
+  assert.equal((await verifyDisclosure({ ...packet, receipt })).valid, true);
+  for (const txId of [randomHex32(), '0'.repeat(66), 'AB'.repeat(33), `0x${receipt.txId}`, 12, `${receipt.txId}ff`]) {
+    assert.throws(() => validatePublicReceipt({ ...receipt, txId }), /Transaction id/);
+  }
 });

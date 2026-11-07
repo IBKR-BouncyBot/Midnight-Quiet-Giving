@@ -1,6 +1,6 @@
 import * as RT from '@midnight-ntwrk/compact-runtime';
-import { provingProvider } from '../../node_modules/@midnight-ntwrk/zkir-v2/midnight_zkir_wasm.js';
-import * as zkirWasm from '../../node_modules/@midnight-ntwrk/zkir-v2/midnight_zkir_wasm_bg.wasm';
+import { provingProvider } from '../../node_modules/@midnight-ntwrk/zkir-v3/midnight_zkir_wasm.js';
+import * as zkirWasm from '../../node_modules/@midnight-ntwrk/zkir-v3/midnight_zkir_wasm_bg.wasm';
 import { createNativeHarness, randomHex32, bytes, taxpayerDigestFor } from '../../lib/native-engine.mjs';
 
 const names = ['mint', 'donate'];
@@ -34,20 +34,22 @@ addEventListener('message', async ({ data }) => {
   try {
     const now = Math.floor(Date.now() / 1000);
     const native = await createNativeHarness({ now, onCircuit({ name, result }) {
-      const { input, output, publicTranscript, privateTranscriptOutputs } = result.proofData;
+      const trace = result.context.callProofDataTrace;
+      if (trace.length !== 1 || trace[0].circuitId !== name) throw new Error('Unexpected proof call trace');
+      const { input, output, publicTranscript, privateTranscriptOutputs } = trace[0];
       calls.push({ name, preimage: RT.proofDataIntoSerializedPreimage(input, output, publicTranscript, privateTranscriptOutputs, name) });
     } });
-    native.call('mint', [{ bytes: bytes(native.coinPublicKey) }, 1000n, bytes(randomHex32())]);
+    await native.call('mint', [{ bytes: bytes(native.coinPublicKey) }, 1000n, bytes(randomHex32())]);
     const coin = { nonce: bytes(randomHex32()), color: native.pure.testTokenColor(bytes(native.contractAddress)), value: 125n };
     const receiptId = bytes(randomHex32());
     const inputs = { donorSecret: bytes(randomHex32()), taxpayerDigest: bytes(await taxpayerDigestFor('SYNTHETIC-WORKER-DONOR')), receiptSalt: bytes(randomHex32()) };
     const args = [coin, receiptId, BigInt(now), BigInt(now + 1200)];
-    native.call('donate', args, inputs);
+    await native.call('donate', args, inputs);
     let duplicateRejected = false;
-    try { native.call('donate', args, inputs); } catch { duplicateRejected = true; }
+    try { await native.call('donate', args, inputs); } catch { duplicateRejected = true; }
     if (!duplicateRejected) throw new Error('Duplicate donation was accepted');
     let wrongAssetRejected = false;
-    try { native.call('donate', [{ ...coin, color: bytes(randomHex32()) }, bytes(randomHex32()), BigInt(now), BigInt(now + 1200)], inputs); } catch { wrongAssetRejected = true; }
+    try { await native.call('donate', [{ ...coin, color: bytes(randomHex32()) }, bytes(randomHex32()), BigInt(now), BigInt(now + 1200)], inputs); } catch { wrongAssetRejected = true; }
     if (!wrongAssetRejected) throw new Error('Wrong token accepted');
     if (calls.length !== names.length || calls.some((call, index) => call.name !== names[index])) throw new Error('Unexpected generated circuit sequence');
     const provider = provingProvider(keys), proofs = [];

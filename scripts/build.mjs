@@ -33,7 +33,7 @@ for (const [path, bytes] of assets) {
 }
 await writeFile(join(dist, '.nojekyll'), '');
 await writeFile(join(dist, 'native-build.json'), JSON.stringify({
-  enabled: true, mode: 'native-local', compiler: '0.31.1', runtime: '0.16.0',
+  enabled: true, mode: 'native-local', compiler: '0.36.0', runtime: '0.21.0',
   wasm: [...assets.keys()], proofGenerationInBrowser: false, networkSubmission: false,
 }, null, 2));
 for (const file of ['README.md', 'LICENSE', 'NOTICE.md', 'docs']) {

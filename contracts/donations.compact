@@ -1,6 +1,6 @@
 // Quiet Giving. Valueless demonstration tokens only.
 // Taxpayer identifiers and receipt openings never enter public ledger state.
-pragma language_version 0.23;
+pragma language_version 0.28;
 import CompactStandardLibrary;
 
 struct DonationReceipt {

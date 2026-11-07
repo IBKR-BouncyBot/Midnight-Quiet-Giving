@@ -4,7 +4,7 @@ import { findNativeWallets, NETWORK_DEFAULTS, nativeNetworkErrorMessage, resolve
 import { checkPreviewPublicServices, formatPreviewServiceError } from '../lib/network/public-testnet.mjs';
 import { verifyDisclosure } from '../lib/receipt.mjs';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
-import { FetchZkConfigProvider } from '@midnight-ntwrk/midnight-js-fetch-zk-config-provider';
+import { createDonationZkConfigProvider } from '../lib/network/artifact-provider.mjs';
 
 const $ = id => document.getElementById(id);
 const text = (id, value) => { const node = $(id); if (node) node.textContent = value; };
@@ -106,7 +106,7 @@ async function connect() {
     passwordProvider: async () => password, internalProverConfirmed: $('internal-prover-confirmed').checked,
     onStage: stage => { if (STAGES[stage]) status(STAGES[stage]); } });
   try { state.client = createNetworkClient(connection.providers, { networkId: connection.networkId, compiledAssetsPath: connection.compiledAssetsPath, assertSession: connection.assertSession }); }
-  catch (error) { connection.close(); throw error; }
+  catch (error) { await connection.close(); throw error; }
   state.connection = connection; $('storage-password').value = '';
   text('connection-status', 'Lace connected · Preview · internal WASM selected by you');
   status('Connected. Set the recipient’s two public keys, deploy, then lock the donation rules. You can also import a public campaign file.');
@@ -144,9 +144,9 @@ function recipientFields() {
 }
 on('refresh-wallets', () => { refreshWallets(); status('Wallet discovery refreshed.'); });
 on('connect-form', connect, 'submit');
-on('disconnect', () => {
+on('disconnect', async () => {
   if (state.disclosure && !state.savedPrivate) invalid('Save your private receipt before disconnecting. This session holds its only copy.');
-  state.connection?.close(); state.connection = null; state.client = null; state.record = null; state.joinDetails = null; state.selectedReceipt = null;
+  await state.connection?.close(); state.connection = null; state.client = null; state.record = null; state.joinDetails = null; state.selectedReceipt = null;
   // Explicit disconnect clears private data as advertised. Export before using it.
   state.disclosure = null; state.savedPrivate = false;
   for (const id of ['storage-password', 'recipient-key', 'recipient-encryption-key', 'contract-address', 'taxpayer-label', 'private-file', 'join-file']) $(id).value = '';
@@ -222,12 +222,10 @@ on('verify-disclosure', async () => {
   if (!state.disclosure) invalid('Make a donation or import its private disclosure first.');
   const config = resolveNativeBrowserConfig(NETWORK_DEFAULTS.preview, location.href);
   const publicDataProvider = indexerPublicDataProvider(config.indexerUri, config.indexerWsUri, globalThis.WebSocket);
-  const zkConfigProvider = new FetchZkConfigProvider(config.compiledAssetsUrl, (url, init) => {
-    const target = new URL(url), base = new URL(config.compiledAssetsUrl);
-    if (target.origin !== base.origin || !target.pathname.startsWith(`${base.pathname}/`)) throw new Error('Asset request outside this app');
-    return fetch(target.href, { ...init, redirect: 'error', credentials: 'same-origin' });
-  });
-  const result = await verifyIndexedDisclosure(state.disclosure, { publicDataProvider, zkConfigProvider, networkId: 'preview' });
+  const zkConfigProvider = createDonationZkConfigProvider(config.compiledAssetsUrl);
+  let result;
+  try { result = await verifyIndexedDisclosure(state.disclosure, { publicDataProvider, zkConfigProvider, networkId: 'preview' }); }
+  finally { await publicDataProvider.dispose(); }
   const panel = $('authority-status'); panel.replaceChildren();
   if (!result.valid || !result.included || !result.indexedDonationMatched) { addText(panel, 'p', 'Verification did not find a matching donation in the locked contract.'); scene('donated'); return; }
   addText(panel, 'strong', 'Private opening + indexed donation verified');

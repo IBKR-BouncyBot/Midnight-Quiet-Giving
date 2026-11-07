@@ -10,3 +10,221 @@ html{scroll-behavior:smooth}body{overflow-x:hidden}button,input,select{border-ra
 @media(max-width:650px){.masthead{height:80px;padding-inline:20px}.brand-title{font-size:16px}.brand-title small{font-size:7px;letter-spacing:1.2px}.brand-mark{height:33px;width:33px}.masthead nav{gap:13px;font-size:11px}.masthead nav .hidden-mobile{display:none}.nav-cta{padding:10px 12px}.page{padding-inline:20px}.hero{grid-template-columns:1fr;padding-top:42px;gap:16px}.hero h1{font-size:49px;max-width:460px;letter-spacing:-2px}.hero-lead{font-size:17px;max-width:500px;margin-top:21px}.hero-cta{margin-top:25px}.flow-figure{padding-top:16px;max-width:450px;width:100%;margin:0 auto}.mini-flow{grid-template-columns:1fr 48px 1fr;max-width:370px}.mini-phone{width:154px}.mini-screen{min-height:226px}.mini-phone.recipient{transform:translateY(18px)}.mini-value{font-size:31px}.mini-server{margin-top:40px;width:190px}.mini-server:before{height:36px}.float-note{left:10%;bottom:91px}.flow-strip{grid-template-columns:1fr;padding:0;gap:0;margin-top:14px}.strip-item{justify-content:flex-start;padding:16px 0;font-size:12px}.strip-item+.strip-item{border-left:0;border-top:1px solid #303037}.strip-item .icon{width:16px}.demo-section{padding:36px 0}.section-heading{display:block}.section-heading h2{font-size:30px}.section-heading>p{margin-top:14px;max-width:none}.demo-paths{grid-template-columns:1fr;gap:18px}.demo-path{padding:24px}.demo-path h3{font-size:28px}.path-top{margin-bottom:22px}.demo-path p{font-size:14px}.principle{padding:30px 0 37px;gap:27px}.principle h2{font-size:31px}.roles{grid-template-columns:1fr;gap:22px}.role{display:grid;grid-template-columns:30px 1fr;column-gap:12px;padding-top:18px}.role .icon{grid-row:1/3;margin:0}.role h3{margin:0 0 6px}.role p{grid-column:2}.scope-note{display:block;padding:20px 0}.scope-note p{margin-top:12px}.footer{align-items:flex-start;flex-direction:column;gap:15px}.footer-links{flex-wrap:wrap;gap:15px}.app-head{padding:28px 0 21px;gap:19px}.app-head h1{font-size:31px}.app-head p{font-size:13px}.mode-switch{font-size:11px}.mode-switch a{padding:8px 12px}.scene{padding:19px 12px 21px}.scene-top{padding:0 4px;margin-bottom:22px}.scene-top p{font-size:8px;letter-spacing:.8px}.legend{gap:8px;font-size:8px}.legend i{width:10px}.stage-grid{grid-template-columns:1fr 17px 1fr;row-gap:24px}.phone{padding:6px;border-radius:23px}.phone-screen{padding:13px 9px 16px;border-radius:18px;min-height:371px}.phone-status{font-size:7px}.phone-status .notch{height:6px;width:35px;top:11px}.phone-app-title{font-size:11px;margin-top:25px;gap:5px}.phone-app-title .icon{width:12px;height:12px}.phone input,.phone select{font-size:10px;padding:8px 6px}.phone label{font-size:9px}.phone input[type=number]{font-size:25px}.phone .button{font-size:10px;gap:5px;min-height:39px;padding:9px 5px}.phone-rule{font-size:8px;gap:3px}.phone-rule .icon{width:10px;height:10px}.phone small{font-size:7px}.device-heading{margin-bottom:10px;gap:8px;padding:0 3px}.device-heading h2{font-size:12px}.device-index{width:18px;height:18px;font-size:8px}.connector-label{writing-mode:vertical-rl;top:-77px;left:48%;font-size:6px;letter-spacing:.6px}.connector:after{font-size:19px;top:-11px}.recipient-screen{padding-inline:10px}.cause-avatar{height:40px;width:40px;margin-top:27px}.cause-title{font-size:12px}.cause-note{font-size:8px;margin-bottom:22px}.received-label{font-size:8px}.received-amount{font-size:33px;margin-top:10px}.received-unit{font-size:8px;margin-bottom:25px}.anonymous-row{font-size:8px;gap:5px}.anonymous-row strong{gap:2px}.anonymous-row .icon{height:9px;width:9px}.recipient-note{padding:8px 6px;font-size:8px;margin-top:15px}.device-caption{font-size:8px;margin-top:12px;padding-inline:3px}.stage-grid .authority-column{grid-template-columns:1fr 1fr;gap:13px 17px;padding:0 6px}.authority-column .device-heading{padding:0;margin:0}.server{padding:10px}.server-face{height:26px;padding:0 8px;margin-bottom:7px}.server-slats{width:44px}.server-title{font-size:9px;gap:5px}.server-title .icon{width:12px;height:12px}.server-proof{padding:9px;min-height:85px}.server-proof-label{font-size:7px}.proof-status{font-size:10px}.proof-meta{font-size:8px}.authority-column .server-action .button{font-size:10px;padding:11px 8px;gap:6px}.authority-column .server-action small{font-size:8px}.authority-column .device-caption{grid-column:1/-1;font-size:8px;margin-top:0;max-width:none}.scene-bottom{font-size:8px;align-items:flex-start;margin-top:18px;text-align:center;gap:5px}.scene-bottom .icon{width:11px;height:11px;margin-top:2px;flex-shrink:0}.lab-tools{grid-template-columns:1fr;gap:17px;margin-top:18px}.tool-panel{padding:21px}.panel-title h2{font-size:17px}.reset-row{align-items:flex-start}.reset-row p{font-size:10px;max-width:200px}.network-grid,.network-receipts{grid-template-columns:1fr;margin-top:19px}.network-panel{padding:23px}.network-panel h2{font-size:24px}.network-scene{padding:17px 10px}.network-scene .stage-grid{grid-template-columns:1fr 16px 1fr 16px 1fr}.network-scene .phone{max-width:110px;border-radius:17px;padding:5px}.network-scene .phone-screen{min-height:132px;padding:11px 7px;border-radius:12px}.network-scene .phone-app-title{font-size:8px;gap:4px}.network-scene .phone-app-title .icon{width:10px;height:10px}.network-scene .received-amount{font-size:22px}.network-scene .received-unit{font-size:7px}.network-scene .device-heading{padding:0;gap:2px}.network-scene .device-heading h2{font-size:9px}.network-scene .device-index{height:15px;width:15px;font-size:6px}.network-scene .stage-grid .authority-column{padding:0}.network-scene .server-wrap{margin-top:18px}.network-scene .server{padding:7px}.network-scene .server-face{height:16px;padding:0 5px;gap:1px}.network-scene .server-slats{width:30px;height:7px}.network-scene .server-title{font-size:8px;gap:4px}.network-scene .server-title .icon{display:none}.network-scene .server-proof{padding:5px;min-height:42px}.network-scene .proof-status{font-size:7px}.network-scene .device-caption{font-size:7px;padding:0}.network-scene .connector-label{font-size:6px;top:-41px;writing-mode:vertical-rl}.network-scene .authority-column .device-caption{font-size:7px;margin-top:11px}.network-scene .scene-bottom{font-size:8px}.network-scene .scene-top{gap:8px}.network-scene .scene-top p{font-size:7px}.receipt-dl{grid-template-columns:80px 1fr;gap:10px;font-size:11px}}
 @media(max-width:380px){.masthead{gap:12px;padding-inline:16px}.brand{gap:8px}.brand-title{font-size:14px}.brand-title small{font-size:6px}.brand-mark{width:28px;height:28px}.brand-mark .icon{width:19px;height:19px}.nav-cta{padding:9px;font-size:9px}.page{padding-inline:16px}.hero h1{font-size:43px;letter-spacing:-1.7px}.mini-flow{grid-template-columns:1fr 22px 1fr}.mini-phone{width:126px;border-radius:21px;padding:6px}.mini-screen{min-height:229px;padding-inline:8px;border-radius:16px}.mini-label{font-size:8px}.mini-label .icon{height:10px;width:10px}.mini-unit{font-size:8px}.mini-recipient{font-size:8px;gap:5px}.mini-private{font-size:7px;padding-inline:3px}.mini-private .icon{height:9px;width:9px}.mini-avatar{width:20px;height:20px}.float-note{left:0;font-size:7px}.path-top{gap:8px}.path-number{font-size:10px}.tag{font-size:8px;padding:6px 8px;letter-spacing:.6px}.demo-path{padding:20px}.network-scene .device-index{display:none}.network-scene .phone-status .notch{width:27px}.network-scene .phone-app-title .icon{display:none}.network-scene .received-amount{font-size:18px}.network-scene .received-unit{font-size:6px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}}
+
+/* Quiet Giving's overview uses the same immediate two-mode choice as the family. */
+.landing-page .hero{display:block;padding:54px 0 34px}
+.landing-page .hero h1{max-width:1050px;font-size:clamp(42px,5.1vw,70px);letter-spacing:-.045em}
+.landing-page .hero-lead{max-width:740px;font-size:20px;margin-top:22px}
+.landing-page .hero-cta{margin:25px 0 13px}
+.landing-page .hero-cta .button{min-width:180px;justify-content:space-between}
+.landing-page .demo-section{padding:30px 0 52px;border-top:1px solid #303037;scroll-margin-top:24px}
+.landing-page .demo-paths{grid-template-columns:repeat(2,minmax(0,1fr))}
+.landing-page .demo-path{padding:30px;background:linear-gradient(145deg,#171717,#101010 75%);min-width:0}
+.landing-page .demo-path:focus-visible{outline:3px solid #fff;outline-offset:5px}
+.landing-page .path-top{gap:16px;margin-bottom:22px}
+.landing-page .path-number{display:grid;place-items:center;width:38px;height:38px;border:1px solid #666;border-radius:50%;color:#fff;font-size:14px;flex-shrink:0}
+.landing-page .demo-path h3{font-size:34px;line-height:1.15;margin-bottom:15px}
+.landing-page .demo-path>p{color:#d0d0d0;font-size:16px;line-height:1.6}
+.landing-page .path-checks{border-top:1px solid #353535;padding-top:18px;gap:10px 20px;color:#c3c3cb;font-size:13px}
+.landing-page .path-fine{font-size:12px;color:#a5a5b1;min-height:58px}
+.landing-page .demo-path .button{min-height:52px;font-size:15px}
+.landing-page .giving-overview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:65px;border-top:1px solid #303037;padding:46px 0 54px}
+.giving-copy h2{font-size:36px;line-height:1.2;letter-spacing:-1px;font-weight:400;margin:0 0 21px}
+.giving-copy h2 span{color:#aaaab6}
+.giving-copy>p:not(.eyebrow){max-width:490px;color:#b8b8c4;font-size:16px}
+.giving-steps{list-style:none;margin:28px 0 0;padding:0;display:grid;gap:22px}
+.giving-steps li{display:flex;gap:16px;align-items:flex-start}
+.giving-steps li>span{display:grid;place-items:center;border:1px solid #4c4c58;border-radius:50%;width:30px;height:30px;flex-shrink:0;font-size:11px;color:#c0c0df}
+.giving-steps strong{font-size:16px;font-weight:450}
+.giving-steps p{margin:5px 0 0;font-size:13px;line-height:1.6;color:#a3a3b1}
+.giving-overview .flow-figure{width:100%;max-width:530px;padding:26px 0 0;margin:auto}
+.giving-overview .mini-flow{--mini-gap:60px;position:relative;grid-template-columns:minmax(0,1fr) var(--mini-gap) minmax(0,1fr);max-width:460px;align-items:stretch}
+.giving-overview .mini-phone{width:100%;max-width:180px;min-width:0;transform:none;display:flex}
+.giving-overview .mini-screen{width:100%;min-height:300px;padding-inline:13px}
+.giving-overview .mini-phone.recipient .mini-value{margin-top:20px}
+.giving-overview .mini-arrow{align-self:center;height:1px;padding:0;position:relative}
+.giving-overview .mini-arrow:after{top:-13px}
+.giving-overview .mini-route-label{position:absolute;left:50%;top:36%;transform:translateX(-50%);font-size:7px;letter-spacing:.5px;color:#ababdf;max-width:58px;text-align:center;line-height:1.5}
+.giving-overview .mini-flow:after{content:'';position:absolute;left:calc((100% - var(--mini-gap))/4);top:100%;width:calc(50% - (100% - var(--mini-gap))/4);height:34px;border-left:1px dashed #9090b4;border-bottom:1px dashed #9090b4;border-bottom-left-radius:10px}
+.giving-overview .mini-server{margin-top:56px;width:202px}
+.giving-overview .mini-server:before{height:22px;background:none;border-left:1px dashed #9090b4}
+.giving-overview .mini-server:after{content:'';width:6px;height:6px;position:absolute;left:calc(50% - 3px);top:-8px;border-right:1px solid #b6b6de;border-bottom:1px solid #b6b6de;transform:rotate(45deg)}
+.giving-overview .float-note{position:static;transform:none;width:max-content;max-width:100%;margin:15px auto 0;display:flex;align-items:center;gap:7px;font-size:10px;padding:8px 11px}
+.giving-overview .float-note .icon{width:13px;height:13px}
+.giving-overview .flow-figure figcaption{max-width:360px;line-height:1.6;margin:14px auto 0;color:#a4a4b5}
+.landing-page .support-section{padding-block:46px}
+
+/* A shared grid aligns the two phones; disclosure has its own donor-owned route. */
+.aligned-stage{grid-template-columns:minmax(0,2fr) minmax(215px,1fr);align-items:start;gap:48px;max-width:1050px}
+.aligned-stage .phone-pair{display:grid;min-width:0;grid-template-columns:minmax(0,1fr) 60px minmax(0,1fr);grid-template-rows:auto 1fr auto}
+.phone-pair>.device-column{display:grid;grid-template-rows:subgrid;grid-row:1/4;align-self:stretch;min-width:0}
+.phone-pair>.device-column:first-child{grid-column:1}
+.phone-pair>.device-column:last-child{grid-column:3}
+.phone-pair .device-heading{width:100%;margin-bottom:14px;min-height:24px;gap:9px}
+.phone-pair .phone{width:100%;height:100%;max-width:none;margin:0}
+.phone-pair .phone-screen{height:100%;min-height:420px}
+.phone-pair .device-caption{margin-top:15px}
+.phone-pair>.connector.money{grid-column:2;grid-row:2;margin:0;align-self:center}
+.phone-pair>.connector.money .connector-label{writing-mode:horizontal-tb;font-size:8px;top:-37px;left:50%;letter-spacing:.5px;max-width:58px}
+.aligned-stage>.authority-column{display:flex;flex-direction:column;grid-column:auto;width:100%;max-width:270px;justify-self:center;align-items:stretch;padding:0}
+.aligned-stage>.authority-column .device-heading{width:100%;max-width:none;min-height:24px;margin:0 0 14px;padding:0}
+.aligned-stage>.authority-column .server-wrap{width:100%;max-width:none;margin:0}
+.aligned-stage>.authority-column .device-caption{grid-column:auto;font-size:10px;margin:15px auto 0}
+.aligned-stage>.authority-column .server-action{margin-top:15px}
+.disclosure-route{display:grid;grid-template-columns:auto minmax(35px,1fr) auto;align-items:center;gap:0 16px;max-width:1050px;margin:30px auto 0;padding:18px 20px;border:1px solid #37374c;border-radius:4px;background:#13131e}
+.disclosure-owner,.disclosure-destination{display:flex;align-items:center;gap:8px;font-size:12px;color:#cecee1}
+.disclosure-route .icon{width:16px;height:16px;color:#b5b5ff}
+.disclosure-line{position:relative;height:1px;border-top:1px dashed #8484b0}
+.disclosure-line:after{content:'›';position:absolute;right:-2px;top:-14px;font-size:22px;color:#c0c0ea}
+.disclosure-line i{position:absolute;left:0;top:-3px;width:5px;height:5px;border-radius:50%;background:#d4d4ff;opacity:0}
+.scene[data-state=verifying] .disclosure-line i{opacity:1;animation:travel 1.3s ease-in-out infinite}
+.scene[data-state=verified] .disclosure-line i{animation:travel 1.5s ease-in-out 1 both}
+.disclosure-route p{grid-column:1/-1;margin:9px 0 0;font-size:10px;line-height:1.5;text-align:center;color:#a6a6bd}
+.network-scene{padding:24px 28px}
+.network-scene .aligned-stage{grid-template-columns:minmax(0,1.8fr) minmax(170px,1fr);max-width:800px;gap:40px}
+.network-scene .aligned-stage .phone-pair{grid-template-columns:minmax(0,1fr) 60px minmax(0,1fr)}
+.network-scene .phone-pair .phone{max-width:170px;justify-self:center}
+.network-scene .phone-pair .phone-screen{min-height:175px;height:100%}
+.network-scene .phone-pair .phone-app-title{font-size:11px;margin-top:24px}
+.network-scene .phone-pair .received-amount{font-size:30px}
+.network-scene .phone-pair .received-unit{font-size:9px}
+.network-scene .phone-pair .device-heading{max-width:170px;font-size:12px}
+.network-scene .phone-pair .device-heading h2{font-size:12px}
+.network-scene .aligned-stage>.authority-column{display:flex;grid-column:auto;max-width:200px;padding:0}
+.network-scene .aligned-stage>.authority-column .server-wrap{margin:0}
+.network-scene .aligned-stage>.authority-column .device-heading{margin:0 0 14px;font-size:12px}
+.network-scene .aligned-stage>.authority-column .device-caption{font-size:9px}
+.network-scene .disclosure-route{max-width:800px;margin-top:22px}
+
+@media(max-width:1000px){
+  .aligned-stage{gap:28px;grid-template-columns:minmax(0,2fr) minmax(190px,1fr)}
+  .aligned-stage .phone-pair{grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr)}
+  .phone-pair .phone-screen{padding-inline:10px}
+  .phone-pair>.connector.money .connector-label{font-size:7px;max-width:36px}
+  .landing-page .giving-overview{gap:35px}
+}
+@media(max-width:850px){
+  .aligned-stage{grid-template-columns:minmax(0,1fr);max-width:600px;gap:30px}
+  .aligned-stage .phone-pair{grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr)}
+  .aligned-stage>.authority-column{max-width:400px;display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:center}
+  .aligned-stage>.authority-column .device-heading{grid-column:1/-1}
+  .aligned-stage>.authority-column .server-wrap{grid-column:1;grid-row:2/4}
+  .aligned-stage>.authority-column .server-action{grid-column:2;grid-row:2;margin:0}
+  .aligned-stage>.authority-column .device-caption{grid-column:2;grid-row:3;font-size:10px;margin-top:10px}
+  .network-scene .aligned-stage{grid-template-columns:minmax(0,1fr);max-width:480px;gap:25px}
+  .network-scene .aligned-stage>.authority-column{display:flex;grid-column:auto;max-width:220px}
+  .network-scene .phone-pair .phone{max-width:190px}
+  .landing-page .giving-overview{grid-template-columns:1fr;gap:20px}
+  .giving-copy>p:not(.eyebrow){max-width:630px}
+  .giving-steps{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+  .giving-steps li{display:block}.giving-steps li>span{margin-bottom:13px}
+}
+@media(max-width:650px){
+  .landing-page .hero{padding:36px 0 27px}
+  .landing-page .hero h1{font-size:clamp(38px,9.8vw,53px);letter-spacing:-.04em}
+  .landing-page .hero .eyebrow{font-size:8px;letter-spacing:1.4px;margin-bottom:19px}
+  .landing-page .hero-lead{font-size:17px;line-height:1.6;margin-top:20px}
+  .landing-page .hero-cta{flex-wrap:nowrap;gap:10px;margin-top:23px}
+  .landing-page .hero-cta .button{min-width:0;flex:1;font-size:12px;padding:13px 12px;gap:7px}
+  .landing-page .hero-note{font-size:10px;line-height:1.6}
+  .landing-page .demo-section{padding:27px 0 34px}
+  .landing-page .demo-paths{grid-template-columns:minmax(0,1fr);gap:20px}
+  .landing-page .demo-path{padding:24px}
+  .landing-page .demo-path h3{font-size:30px}
+  .landing-page .demo-path>p{font-size:15px}
+  .landing-page .path-checks{display:grid;gap:9px;font-size:13px}
+  .landing-page .path-fine{min-height:0;font-size:11px}
+  .landing-page .giving-overview{padding:34px 0;gap:15px}
+  .giving-copy h2{font-size:30px}.giving-copy>p:not(.eyebrow){font-size:15px}
+  .giving-steps{grid-template-columns:1fr;gap:19px}.giving-steps li{display:flex}.giving-steps li>span{margin-bottom:0}
+  .giving-overview .mini-flow{--mini-gap:28px}
+  .giving-overview .mini-screen{padding-inline:9px;min-height:283px}
+  .giving-overview .mini-label{font-size:8px;letter-spacing:.5px}
+  .giving-overview .mini-recipient{font-size:9px;gap:5px}
+  .giving-overview .mini-private{font-size:8px;gap:4px;padding-inline:3px}
+  .giving-overview .mini-route-label{top:34%;font-size:6px;max-width:27px;overflow-wrap:anywhere;letter-spacing:0}
+  .giving-overview .mini-server{margin-top:56px}
+  .disclosure-route{padding:15px 12px;gap:0 10px;margin-top:24px}
+  .disclosure-owner,.disclosure-destination{font-size:10px;gap:5px}
+  .disclosure-route .icon{width:13px;height:13px}
+  .disclosure-route p{font-size:9px}
+  .scene-bottom{font-size:10px;line-height:1.65}
+  .network-scene{padding:22px 16px}
+  .network-scene .aligned-stage .phone-pair{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr)}
+  .network-scene .phone-pair .phone{max-width:none;border-radius:22px;padding:6px}
+  .network-scene .phone-pair .phone-screen{padding:12px 9px;border-radius:16px;min-height:169px}
+  .network-scene .phone-pair .phone-app-title{font-size:10px;gap:4px}
+  .network-scene .phone-pair .phone-app-title .icon{width:12px;height:12px;display:block}
+  .network-scene .phone-pair .received-amount{font-size:28px}
+  .network-scene .phone-pair .received-unit{font-size:9px}
+  .network-scene .phone-pair .device-heading h2{font-size:11px}
+  .network-scene .phone-pair .device-index{display:none}
+  .network-scene .phone-pair .device-caption{font-size:9px}
+  .network-scene .phone-pair>.connector.money .connector-label{font-size:6px;max-width:26px;top:-36px}
+  .network-scene .aligned-stage>.authority-column .device-heading h2{font-size:12px}
+  .network-scene .server{padding:13px}.network-scene .server-face{height:24px;margin-bottom:8px}
+  .network-scene .server-title{font-size:11px}.network-scene .server-title .icon{display:block}
+  .network-scene .server-proof{padding:10px;min-height:50px}.network-scene .proof-status{font-size:11px}
+  .network-scene .scene-bottom{font-size:10px}
+}
+@media(max-width:600px){
+  #donation-scene{padding:22px 17px}
+  #donation-scene .scene-top{display:block;margin-bottom:24px;padding:0}
+  #donation-scene .scene-top p{font-size:9px}
+  #donation-scene .legend{margin-top:12px;font-size:10px;gap:16px}
+  #donation-scene .phone-pair{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto;max-width:285px;margin:auto}
+  #donation-scene .phone-pair>.device-column{display:block;grid-column:1;grid-row:auto}
+  #donation-scene .phone-pair>.connector.money{grid-column:1;grid-row:auto;width:1px;height:42px;justify-self:center;margin:15px 0 24px}
+  #donation-scene .phone-pair>.connector.money:after{top:auto;bottom:-10px;right:-6px;transform:rotate(90deg)}
+  #donation-scene .phone-pair>.connector.money .connector-label{top:7px;left:20px;transform:none;text-align:left;white-space:normal;max-width:90px;font-size:8px}
+  #donation-scene .phone-pair .phone{border-radius:30px;padding:9px;height:auto}
+  #donation-scene .phone-pair .phone-screen{height:auto;min-height:425px;padding:18px 17px 21px;border-radius:22px}
+  #donation-scene .phone-status{font-size:9px}
+  #donation-scene .phone-status .notch{width:55px;height:8px;top:15px}
+  #donation-scene .phone-app-title{font-size:14px;margin-top:26px;gap:8px}
+  #donation-scene .phone-app-title .icon{width:16px;height:16px}
+  #donation-scene .phone label{font-size:11px;margin-top:13px}
+  #donation-scene .phone input,#donation-scene .phone select{font-size:13px;padding:10px;min-height:38px}
+  #donation-scene .phone input[type=number]{font-size:28px}
+  #donation-scene .phone .button{font-size:13px;min-height:44px;padding:11px}
+  #donation-scene .phone-rule{font-size:10px;gap:6px}
+  #donation-scene .phone small{font-size:9px}
+  #donation-scene .device-heading{padding:0;font-size:14px;margin-bottom:12px}
+  #donation-scene .device-heading h2{font-size:14px}
+  #donation-scene .device-index{width:22px;height:22px;font-size:10px}
+  #donation-scene .device-caption{font-size:10px;max-width:280px;margin-top:13px}
+  #donation-scene .cause-avatar{width:54px;height:54px;margin-top:30px}
+  #donation-scene .cause-title{font-size:17px}#donation-scene .cause-note{font-size:10px}
+  #donation-scene .received-label{font-size:10px}
+  #donation-scene .received-amount{font-size:46px}
+  #donation-scene .received-unit{font-size:11px}
+  #donation-scene .anonymous-row{font-size:10px;gap:8px}
+  #donation-scene .anonymous-row .icon{width:12px;height:12px}
+  #donation-scene .recipient-note{font-size:11px;padding:12px;line-height:1.6}
+  #donation-scene .aligned-stage>.authority-column{display:flex;max-width:285px;gap:0}
+  #donation-scene .server{padding:15px}
+  #donation-scene .server-face{height:32px;margin-bottom:9px}
+  #donation-scene .server-title{font-size:12px;gap:8px}
+  #donation-scene .server-proof{padding:13px;min-height:110px}
+  #donation-scene .server-proof-label{font-size:9px}
+  #donation-scene .proof-status{font-size:13px}
+  #donation-scene .proof-meta{font-size:11px}
+  #donation-scene .aligned-stage>.authority-column .server-action{margin-top:15px}
+  #donation-scene .server-action .button{font-size:12px;padding:12px;min-height:44px}
+  #donation-scene .server-action small{font-size:10px}
+  #donation-scene .aligned-stage>.authority-column .device-caption{font-size:10px;margin-top:13px}
+}
+@media(max-width:380px){
+  .landing-page .hero-cta .button{font-size:11px;padding-inline:10px}
+  .landing-page .demo-path{padding:20px}
+  .landing-page .demo-path h3{font-size:28px}
+  .giving-overview .mini-screen{padding-inline:7px;min-height:275px}
+  .giving-overview .mini-private{font-size:7px;gap:3px}
+  .giving-overview .mini-recipient{font-size:8px}
+  .disclosure-route{gap:0 8px;padding-inline:9px}
+  .disclosure-owner,.disclosure-destination{font-size:9px}
+  .disclosure-route .icon{display:none}
+  .network-scene .phone-pair .phone-app-title{font-size:9px}
+  .network-scene .phone-pair .phone-app-title .icon{display:none}
+  .network-scene .phone-pair .device-heading h2{font-size:10px}
+}

@@ -16,13 +16,60 @@ async function nativeAsset(path) {
   const name = `${basename(path, '.wasm').replace(/[^a-zA-Z0-9_-]/g, '_')}-${hash}.wasm`;
   const location = `${assetFolder}/${name}`;
   assets.set(location, bytes);
-  return { module, location };
+  return { module, location, hash };
 }
 
   return {
     name: 'actual-native-wasm',
     setup(build) {
       const root = resolve(projectRoot ?? build.initialOptions.absWorkingDir ?? process.cwd());
+      const ledgerClassExports = new Map();
+      const ledgerPackages = {
+        'ledger-v8': { module: 'midnight_ledger_wasm', snippets: /^midnight-ledger-wasm-[a-f0-9]+$/, reexportAll: true },
+        'ledger-v9': { module: 'midnight_ledger_wasm_v9', snippets: /^midnight-ledger-wasm-v9-[a-f0-9]+$/, reexportAll: false },
+      };
+      build.onResolve({ filter: /^#self$/ }, async args => {
+        const importer = relative(root, args.importer).split(sep).join('/');
+        const knownImporter = importer.match(/^node_modules\/@midnightntwrk\/(ledger-v[89])\/snippets\/([^/]+)\/inline\d+\.js$/);
+        const layout = knownImporter && ledgerPackages[knownImporter[1]];
+        if (args.namespace !== 'file' || !layout || !layout.snippets.test(knownImporter[2])) {
+          return { errors: [{ text: 'Unexpected native WASM #self importer; its initialization must be reviewed' }] };
+        }
+        const packageName = `@midnightntwrk/${knownImporter[1]}`;
+        const packageRoot = resolve(root, 'node_modules', packageName);
+        const backgroundPath = resolve(packageRoot, `${layout.module}_bg.js`);
+        const entryPath = resolve(packageRoot, `${layout.module}.js`);
+        const packagePath = resolve(packageRoot, 'package.json');
+        if (!ledgerClassExports.has(packageName)) {
+          ledgerClassExports.set(packageName, Promise.all([
+            readFile(packagePath, 'utf8'), readFile(entryPath, 'utf8'), readFile(backgroundPath, 'utf8'),
+          ]).then(([metadata, entry, background]) => {
+            const installed = JSON.parse(metadata);
+            const reexport = entry.match(new RegExp(`export\\s*\\{([^}]+)\\}\\s*from\\s*["']\\./${layout.module}_bg\\.js["']\\s*;`));
+            const reexportAll = layout.reexportAll
+              && new RegExp(`export\\s*\\*\\s*from\\s*["']\\./${layout.module}_bg\\.js["']\\s*;`).test(entry)
+              && entry.match(/\bexport\b/g)?.length === 1;
+            if (installed.name !== packageName || installed.imports?.['#self']?.browser !== `./${layout.module}.js`
+              || (!reexport && !reexportAll)) {
+              throw new Error('Native ledger class re-export layout changed; its initialization must be reviewed');
+            }
+            return { background, reexportAll, names: new Set(reexport?.[1].split(',').map(name => name.trim())) };
+          }));
+        }
+        const [source, exports] = await Promise.all([readFile(args.importer, 'utf8'), ledgerClassExports.get(packageName)]);
+        const getter = source.match(/^\s*import\s+\*\s+as\s+wasm\s+from\s+['"]#self['"];\s*export\s+function\s+([A-Za-z_$][\w$]*)_\(\)\s*\{\s*return\s+wasm\.\1;\s*\}\s*$/);
+        if (!getter || (!exports.reexportAll && !exports.names.has(getter[1]))
+          || !exports.background.includes(`export class ${getter[1]} {`)) {
+          return { errors: [{ text: 'Native ledger #self snippet is not a verified direct class getter' }] };
+        }
+        // These official snippets only return classes that the entry re-exports
+        // unchanged from this exact background module. Importing the entry here
+        // creates an async cycle: entry -> WASM fetch -> snippets -> entry, which
+        // prevents the fetch from starting. Resolve the same class bindings
+        // directly; retain the real entry's __wbg_set_wasm/__wbindgen_start calls.
+        // Do not generalize this alias to snippets with other initialization.
+        return { path: backgroundPath, watchFiles: [args.importer, packagePath, entryPath, backgroundPath] };
+      });
       build.onResolve({ filter: /.*/ }, args => {
         if (Object.hasOwn(browserPackages, args.path)) return { path: browserPackages[args.path] };
         if (args.path.startsWith('node:') || builtins.has(args.path)) {
@@ -49,7 +96,7 @@ async function nativeAsset(path) {
       build.onLoad({ filter: /.*/, namespace: 'native-wasm' }, async args => {
         const wasmFile = args.pluginData?.wasmFile;
         if (typeof wasmFile !== 'string' || !isAbsolute(wasmFile)) throw new Error('Native WASM filesystem resolution is missing');
-        const { module, location } = await nativeAsset(wasmFile);
+        const { module, location, hash } = await nativeAsset(wasmFile);
         const modules = [...new Set(WebAssembly.Module.imports(module).map(item => item.module))];
         const exports = WebAssembly.Module.exports(module);
         // Preserve the real binary's imports and exports. Missing JS glue fails
@@ -58,12 +105,15 @@ async function nativeAsset(path) {
         const importObject = modules.map((name, i) => `[${JSON.stringify(name)}]: nativeImport${i}`).join(', ');
         const bindings = exports.map(({ name }, i) =>
           `const nativeExport${i} = nativeInstance.exports[${JSON.stringify(name)}];\nexport { nativeExport${i} as ${JSON.stringify(name)} };`).join('\n');
+        const initialization = `const nativeResponse = await fetch(new URL(${JSON.stringify(`./${location}`)}, import.meta.url), { credentials: 'same-origin', redirect: 'error' });
+if (!nativeResponse.ok) throw new Error('Native WASM asset could not be loaded');
+const nativeBytes = await nativeResponse.arrayBuffer();
+const nativeHash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', nativeBytes))].map(value => value.toString(16).padStart(2, '0')).join('');
+if (nativeHash !== ${JSON.stringify(hash)}) throw new Error('Native WASM asset integrity check failed');
+const { instance: nativeInstance } = await WebAssembly.instantiate(nativeBytes, { ${importObject} });`;
         return {
           loader: 'js', resolveDir: dirname(wasmFile), watchFiles: [wasmFile],
-          contents: `${imports}\nconst nativeResponse = await fetch(new URL(${JSON.stringify(`./${location}`)}, import.meta.url));
-if (!nativeResponse.ok) throw new Error('Native WASM asset could not be loaded');
-const { instance: nativeInstance } = await WebAssembly.instantiate(await nativeResponse.arrayBuffer(), { ${importObject} });
-${bindings}\n`,
+          contents: `${imports}\n${initialization}\n${bindings}\n`,
         };
       });
       // wasm-bindgen's web target may fetch a literal URL instead of importing

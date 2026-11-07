@@ -18,6 +18,7 @@ const faucetUrl = 'https://midnight-tmnight-preview.nethermind.dev/';
 const vendorFlagsUrl = 'https://e.lw.iog.io/flags/?v=2&config=true';
 const report = { schema: 'private-donations/real-lace-preview/v1', startedAt: new Date().toISOString(),
   network: 'preview', extensionVersion: '2.5.1', extensionId, realExtension: false, injectedWalletAdapter: false,
+  targetLedgerEra: 'ledger9', compilerVersion: '0.36.0', midnightJsVersion: '5.0.0',
   walletCreated: false, walletConnected: false, seedReadOrExported: false, internalWasmSelectedInUI: false,
   internalWasmAttestedByConnector: false, testNightFunded: false, testDustAvailable: false,
   acceptedTransactions: [], privateArtifactsSaved: false, governmentEndpointContacted: false,
@@ -191,6 +192,27 @@ async function checkConfiguredWalletIndexer() {
   if (body.errors || !Number.isSafeInteger(body?.data?.block?.height) || body.data.block.height < 0) throw new Error('wallet-indexer-unavailable-before-funding');
   report.walletIndexerHealth.blockHeight = body.data.block.height;
   report.walletIndexerHealth.ready = true;
+  const nodeUrl = new URL(configuration.substrateNodeUri);
+  if (nodeUrl.protocol === 'wss:') nodeUrl.protocol = 'https:';
+  const rpcBody = JSON.stringify([
+    { jsonrpc: '2.0', id: 1, method: 'system_chain', params: [] },
+    { jsonrpc: '2.0', id: 2, method: 'chain_getBlockHash', params: [0] },
+    { jsonrpc: '2.0', id: 3, method: 'state_getRuntimeVersion', params: [] },
+  ]);
+  const heads = [];
+  for (const url of [nodeUrl.href, 'https://rpc.preview.midnight.network']) {
+    const response = await fetch(url, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(30000),
+      headers: { 'content-type': 'application/json' }, body: rpcBody });
+    if (!response.ok) throw new Error('wallet-node-unavailable-before-funding');
+    const results = await response.json();
+    if (!Array.isArray(results) || results.some(value => value.error)) throw new Error('wallet-node-invalid-response');
+    const byId = id => results.find(value => value.id === id)?.result;
+    if (byId(1) !== 'Midnight Preview' || !/^0x[0-9a-f]{64}$/.test(byId(2))
+      || !Number.isSafeInteger(byId(3)?.specVersion) || byId(3).specVersion < 2000000) throw new Error('wallet-node-wrong-preview-era');
+    heads.push({ genesisHash: byId(2), runtimeSpecVersion: byId(3).specVersion });
+  }
+  if (heads[0].genesisHash !== heads[1].genesisHash) throw new Error('wallet-node-preview-reset-mismatch');
+  report.previewChain = { ...heads[0], walletAndCanonicalNodeAgree: true };
 }
 function safeExtensionRoute(page) {
   try {
@@ -313,7 +335,7 @@ async function collectTransactions() {
     blockHeight: node.textContent.match(/at block (\d+)/)?.[1] ?? '', confirmationSource: 'configured-preview-indexer',
   })));
   for (const row of rows) {
-    if (!/^[0-9a-f]{64}$/.test(row.txId) || !/^\d+$/.test(row.blockHeight)) throw new Error('invalid-public-evidence');
+    if (!/^[0-9a-f]{66}$/.test(row.txId) || !/^\d+$/.test(row.blockHeight)) throw new Error('invalid-public-evidence');
     if (!report.acceptedTransactions.some(item => item.txId === row.txId)) report.acceptedTransactions.push(row);
   }
   await save();
@@ -514,7 +536,7 @@ try {
     : /faucet-rate-limit/.test(message) ? 'official-faucet-rate-limit'
     : /faucet-service-unavailable/.test(message) ? 'official-faucet-service-unavailable'
     : /extension-worker-unavailable/.test(message) ? 'extension-worker-unavailable'
-    : /vendor|wallet-indexer-unavailable/.test(message) ? 'wallet-service-configuration-unavailable'
+    : /vendor|wallet-indexer-unavailable|wallet-node-/.test(message) ? 'wallet-service-configuration-unavailable'
     : navigationCategory(error) ?? (/credential|runner|recovery/.test(message) ? 'isolated-runner-safety-boundary' : 'stage-failed');
   report.lastApprovedControl = lastAction || null;
   if (context) report.extensionWorkersAtFailure = await extensionWorkerHealth();

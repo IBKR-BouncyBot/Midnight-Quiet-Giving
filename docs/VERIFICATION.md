@@ -4,12 +4,12 @@ Each result below must be supported by a completed check. Website deployment, ge
 
 ## Current implementation
 
-- Official Compact 0.31.1 compilation produces the `mint` and `donate` bindings and proving material.
+- Official Compact 0.36.0 compilation produces the ledger 9 `mint` and `donate` bindings, proving material and integrity manifest.
 - The local browser lab uses generated Compact code and actual Midnight WebAssembly. It does not generate proofs or submit transactions.
-- The Preview client uses the actual Midnight.js SDK and Lace API 4. A successful build does not establish a working extension or accepted payment.
+- The Preview client uses Midnight.js 5.0.0 and Lace API 4.1. A successful build does not establish a working extension or accepted payment.
 - The authority view checks a deliberately disclosed commitment opening. It is not an official tax service and does not create a separate zero-knowledge tax proof.
 
-## Checks
+## Checks before the Preview reset
 
 On 6 November 2026, the official compiler generated both circuits and their proving/verifier material. All 25 native contract, disclosure and network-boundary tests passed locally on Node.js 24.18.0. These cover shielded output effects, asset/amount/time constraints, duplicate receipts and nonces, altered identity/amount/recipient data, private export boundaries, wallet/network restrictions, verifier-key mismatches, mutable contracts and fabricated initial receipts.
 
@@ -19,7 +19,7 @@ The browser test's sanitized JSON and screenshots are generated under ignored `a
 
 The published Quiet Giving site also passed a Chromium smoke check: donation and deliberate disclosure, no donor label in the recipient view, wallet-free network startup, the support QR and copy control, and the correct repository links. No page errors were recorded. The README infographic was rendered and visually reviewed, published to GitHub, and retrieved successfully from its public URL.
 
-## Real WASM proof generation
+## Earlier WASM proof generation
 
 The separate `npm run test:proofs` harness generated both circuit proofs in a dedicated Chromium 156 Web Worker using official `@midnight-ntwrk/zkir-v2` 2.1.1 and the generated compiler material. The mint proof was 4,501 bytes in 22.1 seconds; the donation proof was 4,501 bytes in 78.5 seconds on the tested desktop. These timings are observations, not performance promises.
 
@@ -39,6 +39,14 @@ A subsequent local test on 6 November used the same verified, unmodified Lace 2.
 
 The regular browser also received Lace's normal vendor configuration and applied its current Preview service URLs after all extension views closed and reopened. Its actual wallet indexer returned HTTP 200; the app's separate public-service check returned block 1,629,652. An earlier headless attempt received an empty feature-flag response, while the headed browser received 43 flags. The cause of that difference was not established. No response, wallet identity, adapter or service configuration was injected to obtain the successful connection. Public evidence omits service query values.
 
-The local test is **awaiting test funding**: the official faucet presented human verification, and the fresh wallet has no NIGHT or DUST. Deployment, rule locking, minting, donation acceptance and the indexed private-disclosure check have not run. Its isolated private profile is retained locally for continuation; no recovery phrase, password or private receipt is published. This is a successful wallet setup and connection check, not a completed donation test.
+That pre-reset local test stopped before funding: the official faucet presented human verification. Deployment, rule locking, minting, donation acceptance and the indexed private-disclosure check did not run. Its disposable browser session subsequently ended. This was a successful wallet setup and connection check, not a completed donation test.
+
+## Preview reset and ledger 9 migration
+
+On 7 November, the resumed test encountered a new Preview chain. The [official reset notice](https://docs.midnight.network/relnotes/network) confirms that Preview was replaced on 6 November and retained no old contracts, balances or DUST registrations. The requested transfer from the older ReviewLab test balance therefore could not be made; no sponsor transaction was submitted. The replacement chain was independently identified through its public RPC as ledger `crate-ledger-9.1.0.1`, runtime spec version `2001100`, with genesis hash `0x3c096de209e06a1a8c52be7bda109ee8c891a42288c0a9db5495f9616dd13796`.
+
+Quiet Giving now targets the [supported ledger 9 versions](https://docs.midnight.network/relnotes/support-matrix): Compact 0.36.0, runtime 0.21.0, Midnight.js 5.0.0 and connector API 4.1.0. Its contract was recompiled. All 32 native, privacy and network-boundary tests passed, including current-era state decoding, refusing ledger 8 transactions, compiler-manifest integrity checks and serialized concurrent contract calls. The old-chain checks above remain historical evidence.
+
+A replacement fresh wallet was created in the same verified, unmodified Lace 2.5.1 extension. Preview and persisted internal WASM were checked again. Its configured wallet indexer returned HTTP 500, while the canonical Preview indexer returned the new chain's much lower block height. A connection permission is not proof that the wallet is synchronized. Fresh faucet funding and a working wallet indexer are required before the donation acceptance test can proceed. The replacement profile and test passwords are retained locally, with passwords protected by Windows encryption; no seed or private artifact is published.
 
 **The browser demo is tested; the Preview + Lace flow is implemented but not verified end to end.** A successful build, generated proof or one successful settings check must not substitute for accepted donation evidence. Do not substitute an SDK adapter or a simulated successful wallet response for the real extension result.

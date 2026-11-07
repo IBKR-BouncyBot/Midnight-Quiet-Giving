@@ -13,7 +13,7 @@ sh "$installer"
 export PATH="$HOME/.local/bin:$PATH"
 printf '%s\n' "$HOME/.local/bin" >> "${GITHUB_PATH:?}"
 compact --version
-compact update 0.31.1
-compact compile +0.31.1 --version
+compact update 0.36.0
+compact compile +0.36.0 --version
 node --version
 npm --version
