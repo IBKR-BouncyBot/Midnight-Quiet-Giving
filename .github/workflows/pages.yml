@@ -39,6 +39,20 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Exercise browser donation and disclosure journey
         run: npm run test:browser
+      - name: Generate real browser worker proofs
+        if: github.event_name == 'workflow_dispatch'
+        timeout-minutes: 15
+        run: npm run test:proofs
+      - name: Save public worker proof evidence
+        if: always() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: donation-browser-proof-evidence
+          path: |
+            artifacts/worker-proofs/worker-evidence.json
+            artifacts/worker-proofs/worker-complete.png
+          if-no-files-found: warn
+          retention-days: 14
       - name: Save sanitized browser evidence
         if: always()
         uses: actions/upload-artifact@v4

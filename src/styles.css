@@ -142,7 +142,7 @@ html{scroll-behavior:smooth}body{overflow-x:hidden}button,input,select{border-ra
   .giving-overview .mini-label{font-size:8px;letter-spacing:.5px}
   .giving-overview .mini-recipient{font-size:9px;gap:5px}
   .giving-overview .mini-private{font-size:8px;gap:4px;padding-inline:3px}
-  .giving-overview .mini-route-label{top:34%;font-size:6px;max-width:27px;overflow-wrap:anywhere;letter-spacing:0}
+  .giving-overview .mini-route-label{display:none}
   .giving-overview .mini-server{margin-top:56px}
   .disclosure-route{padding:15px 12px;gap:0 10px;margin-top:24px}
   .disclosure-owner,.disclosure-destination{font-size:10px;gap:5px}
@@ -160,7 +160,7 @@ html{scroll-behavior:smooth}body{overflow-x:hidden}button,input,select{border-ra
   .network-scene .phone-pair .device-heading h2{font-size:11px}
   .network-scene .phone-pair .device-index{display:none}
   .network-scene .phone-pair .device-caption{font-size:9px}
-  .network-scene .phone-pair>.connector.money .connector-label{font-size:6px;max-width:26px;top:-36px}
+  .network-scene .phone-pair>.connector.money .connector-label{display:none}
   .network-scene .aligned-stage>.authority-column .device-heading h2{font-size:12px}
   .network-scene .server{padding:13px}.network-scene .server-face{height:24px;margin-bottom:8px}
   .network-scene .server-title{font-size:11px}.network-scene .server-title .icon{display:block}
