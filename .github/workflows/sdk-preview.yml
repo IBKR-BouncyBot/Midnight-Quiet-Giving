@@ -1,0 +1,81 @@
+name: Internal wallet Preview acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/ledger9-preview]
+    paths:
+      - '.github/workflows/sdk-preview.yml'
+      - 'scripts/ci-sdk-preview.mjs'
+      - 'scripts/sdk-preview/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quiet-giving-internal-preview-wallet
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    name: Fresh internal wallets on Preview
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      QUIET_GIVING_PREVIEW_GENESIS: '0x3c096de209e06a1a8c52be7bda109ee8c891a42288c0a9db5495f9616dd13796'
+      QUIET_GIVING_FUNDING_WAIT_MINUTES: '120'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install pinned packages
+        run: npm ci --ignore-scripts
+      - name: Install official Compact compiler
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash scripts/ci-install-midnight.sh
+      - name: Compile and check donation contract
+        run: |
+          npm run compile
+          npm test
+      - name: Start ephemeral internal wallets
+        run: |
+          node scripts/ci-sdk-preview.mjs > "$RUNNER_TEMP/quiet-giving-sdk.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/quiet-giving-sdk.pid"
+          node scripts/ci-watch-sdk-preview.mjs --funding-request
+      - name: Publish only the public funding address
+        uses: actions/upload-artifact@v4
+        with:
+          name: quiet-giving-preview-funding
+          path: artifacts/sdk-preview/funding-request.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Await test funding and run the donation flow
+        run: node scripts/ci-watch-sdk-preview.mjs --completion
+      - name: Retain public test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quiet-giving-sdk-preview-evidence
+          path: |
+            artifacts/sdk-preview/funding-request.json
+            artifacts/sdk-preview/status.json
+            artifacts/sdk-preview/evidence.json
+            artifacts/sdk-preview/public-campaign.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Stop this runner's test process
+        if: always()
+        shell: bash
+        run: |
+          pid_file="$RUNNER_TEMP/quiet-giving-sdk.pid"
+          if [[ -f "$pid_file" ]]; then
+            test_pid="$(cat "$pid_file")"
+            if [[ "$test_pid" =~ ^[0-9]+$ ]] && [[ -r "/proc/$test_pid/cmdline" ]] && rg -a -q 'scripts/ci-sdk-preview.mjs' "/proc/$test_pid/cmdline"; then
+              kill -TERM "$test_pid"
+            fi
+          fi
