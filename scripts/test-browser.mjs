@@ -33,7 +33,13 @@ async function layout(name) {
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: width === 1440 ? 1050 : 844 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `${name} overflows at ${width}px`);
-    if (width !== 320) await page.screenshot({ path: resolve(output, `${name}-${width}.png`), fullPage: true });
+    await page.screenshot({ path: resolve(output, `${name}-${width}.png`), fullPage: true, animations: 'disabled' });
+    const scene = name === 'landing' ? '.flow-figure' : name === 'browser-donation' ? '#donation-scene' : '#network-scene';
+    await page.locator(scene).screenshot({ path: resolve(output, `${name}-graphic-${width}.png`), animations: 'disabled' });
+    if (name === 'landing' && width === 390) {
+      await page.locator('#support').screenshot({ path: resolve(output, 'support-390.png'), animations: 'disabled' });
+      await page.locator('#demos').screenshot({ path: resolve(output, 'demo-choice-390.png'), animations: 'disabled' });
+    }
   }
   await page.setViewportSize({ width: 1440, height: 1050 });
 }
