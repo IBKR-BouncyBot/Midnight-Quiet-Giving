@@ -1,5 +1,5 @@
 import { readFile, writeFile, mkdir, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve, relative } from 'node:path';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { build } from 'esbuild';
@@ -67,7 +67,8 @@ export async function buildNetwork(root, dist) {
   }
   const generatedModules = new Set([...vendorModules.values()].map(({ file }) => `./${file}`));
   const result = await build({
-    absWorkingDir: root, entryPoints: [join(root, 'src/network-app.mjs')], outfile: join(dist, 'network-implementation.mjs'),
+    absWorkingDir: root, entryPoints: [{ in: join(root, 'src/network-app.mjs'), out: 'network-implementation' }], outdir: dist,
+    chunkNames: 'network-chunk-[hash]', outExtension: { '.js': '.mjs' },
     bundle: true, format: 'esm', platform: 'browser', target: 'es2022',
     mainFields: ['browser', 'module', 'main'], conditions: ['browser', 'import'],
     define: { __QUIET_GIVING_MANIFEST_SHA256__: JSON.stringify(manifestSha256) },
@@ -82,11 +83,22 @@ export async function buildNetwork(root, dist) {
         });
       },
     }, nativeWasmPlugin(assets, { projectRoot: root, assetFolder: 'network-assets', browserPackages })],
-    minify: true, legalComments: 'inline', metafile: true, logLevel: 'warning',
+    // Match Ballot Lab's SDK 5 ESM build: preserve dynamic-import initialization.
+    // Flattening the SDK into one file left ContractExecutableRuntime.make
+    // uninitialized during deployment, before the wallet was ever called.
+    splitting: true, minify: false, legalComments: 'inline', metafile: true, logLevel: 'warning',
   });
   if (result.warnings.length) throw new Error('Review network browser build warnings');
   if (Object.values(result.metafile.outputs).flatMap(value => value.imports).some(item => item.external && !generatedModules.has(item.path))) throw new Error('Unresolved network dependency');
   if (Object.keys(result.metafile.inputs).some(name => name.startsWith('native-wasm:'))) throw new Error('Native WASM must remain outside the synchronous SDK bundle');
+  const moduleAssets = await Promise.all(Object.keys(result.metafile.outputs).map(async file => {
+    const path = relative(dist, resolve(root, file)).replaceAll('\\', '/');
+    if (path !== 'network-implementation.mjs' && !/^network-chunk-[A-Z0-9]{8}\.mjs$/.test(path)) throw new Error('Unexpected network module output');
+    const bytes = await readFile(join(dist, path));
+    if (!bytes.length) throw new Error('Empty network module output');
+    return { path, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') };
+  }));
+  if (moduleAssets.length < 2) throw new Error('Expected preserved SDK dynamic module boundaries');
   const allInputs = [...new Set([...Object.keys(result.metafile.inputs), ...vendorInputs])];
   const inputs = allInputs.map(name => name.replaceAll('\\', '/'));
   for (const required of ['managed/donations/contract/index.js', '/@midnight-ntwrk/compact-runtime/', '/@midnightntwrk/ledger-v9/', '/@midnight-ntwrk/midnight-js-contracts/', '/@midnight-ntwrk/midnight-js-dapp-connector-proof-provider/']) {
@@ -106,7 +118,7 @@ export async function buildNetwork(root, dist) {
 `);
   await writeFile(join(dist, 'network-build.json'), JSON.stringify({
     enabled: true, mode: 'preview-network-client', compiler: '0.36.0', runtime: '0.21.0', sdk: '5.0.0', ledgerEra: 'ledger9',
-    wasm: [...assets.keys()], nativeModules: [...generatedModules], circuitAssets: artifacts, compilerAssets, manifestSha256, proofGeneration: 'not-established-by-build', networkAcceptance: 'not-established-by-build',
+    wasm: [...assets.keys()], nativeModules: [...generatedModules], moduleAssets, circuitAssets: artifacts, compilerAssets, manifestSha256, proofGeneration: 'not-established-by-build', networkAcceptance: 'not-established-by-build',
   }, null, 2));
   return { inputs: allInputs, wasmAssets: assets.size, circuitAssets: artifacts.length };
 }
