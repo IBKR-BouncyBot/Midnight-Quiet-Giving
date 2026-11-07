@@ -1,0 +1,258 @@
+{
+  "kind": "production-browser-preparation-regression",
+  "baseline": {
+    "kind": "production-browser-deployment-preparation",
+    "status": "failed",
+    "startedAt": "2026-11-07T12:01:20.884Z",
+    "sourceCommit": "15b60330f0262b5271c8bcf4773c0a0c2413f23b",
+    "runId": "42370554487",
+    "productionBundleUnmodified": true,
+    "productionModulesReplaced": false,
+    "productionEncryptedStorageProvider": true,
+    "actualCompiledContract": true,
+    "connectorFixture": true,
+    "reportedDustIsSynthetic": true,
+    "realWalletConnected": false,
+    "proofGenerated": false,
+    "networkTransactionSubmitted": false,
+    "networkAcceptance": false,
+    "secretMaterialExported": false,
+    "exceptions": [
+      {
+        "phase": "production-page-startup",
+        "name": "TypeError",
+        "functions": []
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "TypeError",
+        "functions": [],
+        "message": "Cannot read properties of null (reading 'error')"
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "OtherError",
+        "functions": [
+          "zZ",
+          "OCe",
+          "I_t.exports"
+        ]
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "OtherError",
+        "functions": [
+          "get"
+        ]
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "OtherError",
+        "functions": [
+          "get",
+          "j_t.exports"
+        ]
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "TypeError",
+        "functions": [
+          "MOr",
+          "ykt.exports"
+        ]
+      },
+      {
+        "phase": "real-deployment-preparation",
+        "name": "TypeError",
+        "functions": [
+          "tN",
+          "xPr"
+        ],
+        "message": "lZ.make is not a function"
+      }
+    ],
+    "requestedAssets": [
+      "/network-contract/compiler/contract-manifest.json"
+    ],
+    "publicMetadataReads": [
+      {
+        "operation": "HEAD_PROTOCOL_VERSION_QUERY",
+        "httpStatus": 200,
+        "protocolVersion": 2001100
+      }
+    ],
+    "unexpectedRequests": [],
+    "sourceHashes": {
+      "dist/network-bundle.mjs": "0d6ce2d38025278556afbc72f75b3e8751e67ca34c59008323278f789240cc00",
+      "dist/network-implementation.mjs": "080020572cf04b8222ba786f4ddbd3feca4917acf3178837c7bc569ffcfb4640",
+      "dist/network.html": "2581c0dd4c7ab49fc81f1fbb0f4bf1953a7ea8f801e89f482f04396f9a98bc21",
+      "dist/network-contract/compiler/contract-manifest.json": "9994173c779916ce1f75b70f74afe0e9590f51c8bfc53b0e7ab8c79346314489",
+      "scripts/build-network.mjs": "b432bfa4d30c61ddcbd84ce5211751e695d7a84c74f429088890a25d82dfe070",
+      "scripts/native-wasm-plugin.mjs": "8e2abdab0749d8fde9f8d3421fac287c26f89e523a6a734b39b582cfea5bf13f",
+      "package-lock.json": "4d571a0169779e8d2232c8af2154b53a450ab6ace7c9ab67b129ddd7234f6f08",
+      "scripts/test-network-preparation.mjs": "ba33dcd1bb32335fb97e0992445a34329a664eaf31e57983240596e145d47551"
+    },
+    "connectorCalls": {
+      "proofProviderAcquired": 1,
+      "proofCheck": 0,
+      "proofProve": 0,
+      "balance": 0,
+      "submit": 0,
+      "dustRead": 1
+    },
+    "guard": null,
+    "visibleStatus": "This action could not finish. Check Lace, its Run in this app (WASM) setting, test network and usable DUST. Keep this tab open while proving. If a transaction was sent, check its status before trying again. Last step: Preparing the donation contract and verifier keys.",
+    "indexedDbAvailable": false,
+    "pageErrors": [],
+    "failureStage": "real-deployment-preparation",
+    "failure": "Production preparation failed before the expected guarded wallet boundary; inspect curated exception metadata"
+  },
+  "fixed": {
+    "kind": "production-browser-deployment-preparation",
+    "status": "passed",
+    "startedAt": "2026-11-07T12:04:35.693Z",
+    "sourceCommit": "2fa5cd7fdc3f4c9d842cd28d67964f4562dee9ae",
+    "runId": "42370779784",
+    "productionBundleUnmodified": true,
+    "productionModulesReplaced": false,
+    "productionEncryptedStorageProvider": true,
+    "actualCompiledContract": true,
+    "connectorFixture": true,
+    "reportedDustIsSynthetic": true,
+    "realWalletConnected": false,
+    "proofGenerated": false,
+    "networkTransactionSubmitted": false,
+    "networkAcceptance": false,
+    "secretMaterialExported": false,
+    "exceptions": [
+      {
+        "phase": "production-page-startup",
+        "name": "TypeError",
+        "functions": [
+          "__require",
+          "__require",
+          "__require",
+          "__require"
+        ]
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "TypeError",
+        "functions": [
+          "__require",
+          "__require",
+          "__require",
+          "__require",
+          "__require"
+        ],
+        "message": "Cannot read properties of null (reading 'error')"
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "OtherError",
+        "functions": [
+          "throwRegexMarker",
+          "isRegex",
+          "regexTester",
+          "__require",
+          "__require",
+          "__require"
+        ]
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "OtherError",
+        "functions": [
+          "get",
+          "__require",
+          "__require",
+          "__require",
+          "__require"
+        ]
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "OtherError",
+        "functions": [
+          "get",
+          "isCallable2",
+          "forEach3",
+          "__require",
+          "__require",
+          "__require"
+        ]
+      },
+      {
+        "phase": "production-page-startup",
+        "name": "TypeError",
+        "functions": [
+          "assignHasPendingExceptions",
+          "getPolyfill",
+          "__require",
+          "__require",
+          "__require",
+          "__require"
+        ]
+      },
+      {
+        "phase": "real-deployment-preparation",
+        "name": "Error",
+        "functions": [
+          "stop",
+          "balanceUnsealedTransaction",
+          "balance",
+          "v9",
+          "serve",
+          "dispatch",
+          "balanceTx",
+          "balanceTx"
+        ],
+        "intentionalBoundaryStop": true
+      },
+      {
+        "phase": "real-deployment-preparation",
+        "name": "ProviderFailedError",
+        "functions": [
+          "atProviderMethod"
+        ],
+        "code": "MIDNIGHT_JS_C_PROVIDER_FAILED"
+      }
+    ],
+    "requestedAssets": [
+      "/network-contract/compiler/contract-manifest.json",
+      "/network-contract/keys/donate.verifier",
+      "/network-contract/keys/mint.verifier"
+    ],
+    "publicMetadataReads": [
+      {
+        "operation": "HEAD_PROTOCOL_VERSION_QUERY",
+        "httpStatus": 200,
+        "protocolVersion": 2001100
+      }
+    ],
+    "unexpectedRequests": [],
+    "sourceHashes": {
+      "dist/network-bundle.mjs": "0d6ce2d38025278556afbc72f75b3e8751e67ca34c59008323278f789240cc00",
+      "dist/network-implementation.mjs": "82db9d402afab6114e15ba6c7b337371d4a323afbede0470950cbc06345e3726",
+      "dist/network.html": "2581c0dd4c7ab49fc81f1fbb0f4bf1953a7ea8f801e89f482f04396f9a98bc21",
+      "dist/network-contract/compiler/contract-manifest.json": "9994173c779916ce1f75b70f74afe0e9590f51c8bfc53b0e7ab8c79346314489",
+      "scripts/build-network.mjs": "612fd0c7b9c448c24217a53235d97279822cb5660d1e93518cd651344775d307",
+      "scripts/native-wasm-plugin.mjs": "8e2abdab0749d8fde9f8d3421fac287c26f89e523a6a734b39b582cfea5bf13f",
+      "package-lock.json": "4d571a0169779e8d2232c8af2154b53a450ab6ace7c9ab67b129ddd7234f6f08",
+      "scripts/test-network-preparation.mjs": "ba33dcd1bb32335fb97e0992445a34329a664eaf31e57983240596e145d47551"
+    },
+    "connectorCalls": {
+      "proofProviderAcquired": 1,
+      "proofCheck": 0,
+      "proofProve": 0,
+      "balance": 1,
+      "submit": 0,
+      "dustRead": 1
+    },
+    "guard": "wallet-balance",
+    "visibleStatus": "Lace could not balance or approve this transaction. Open its Midnight account and check usable DUST, any required test-token balance and the pending approval. No automatic retry was made. Last step: Review and approve this Preview transaction in Lace.",
+    "indexedDbAvailable": false,
+    "pageErrors": [],
+    "completedAt": "2026-11-07T12:04:38.043Z"
+  }
+}

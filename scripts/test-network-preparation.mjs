@@ -71,11 +71,25 @@ try {
       unshieldedAddress: addressFormat.MidnightBech32m.encode('preview', new addressFormat.UnshieldedAddress(randomBytes(32))).asString(),
     };
   } finally { keys.clear(); seed.fill(0); }
-  report.sourceHashes = Object.fromEntries(await Promise.all([
+  const buildMetadata = JSON.parse(await readFile(join(root, 'dist/network-build.json'), 'utf8'));
+  const modulePaths = [...new Set([
+    ...(buildMetadata.moduleAssets ?? []).map(asset => asset.path),
+    ...(buildMetadata.nativeModules ?? []).map(path => path.replace(/^\.\//, '')),
+  ])];
+  assert(modulePaths.every(path => /^network-[A-Za-z0-9_-]+\.mjs$/.test(path)), 'Only generated network modules may be hashed');
+  report.moduleAssets = await Promise.all(modulePaths.map(async path => {
+    const bytes = await readFile(join(root, 'dist', path));
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
+    const expected = buildMetadata.moduleAssets?.find(asset => asset.path === path);
+    if (expected) { assert.equal(bytes.length, expected.bytes); assert.equal(sha256, expected.sha256); }
+    return { path, bytes: bytes.length, sha256 };
+  }));
+  report.sourceHashes = Object.fromEntries(await Promise.all([...new Set([
     'dist/network-bundle.mjs', 'dist/network-implementation.mjs', 'dist/network.html',
-    'dist/network-contract/compiler/contract-manifest.json', 'scripts/build-network.mjs',
+    'dist/network-build.json', 'dist/network-contract/compiler/contract-manifest.json', 'scripts/build-network.mjs',
     'scripts/native-wasm-plugin.mjs', 'package-lock.json', 'scripts/test-network-preparation.mjs',
-  ].map(async file => [file, createHash('sha256').update(await readFile(join(root, file))).digest('hex')])));
+    ...modulePaths.map(path => `dist/${path}`),
+  ])].map(async file => [file, createHash('sha256').update(await readFile(join(root, file))).digest('hex')])));
   stage = 'production-page-startup';
   server = createStaticServer({ directory: join(root, 'dist'), port: 0 }); await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}/`;

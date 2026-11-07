@@ -6,6 +6,8 @@ Frontend: https://ibkr-bouncybot.github.io/Midnight-Quiet-Giving/
 
 The `pages.yml` workflow installs the official pinned Compact compiler, installs the committed npm graph, compiles the donation contract and proof material, runs meaningful contract/privacy tests, builds native and network bundles, exercises the browser journey, and publishes `dist/` using GitHub Pages.
 
+The SDK 5 network build preserves dynamic ESM chunks and packages every generated module. Before publication, a remote Chromium check loads the unmodified production bundle and prepares a real deployment up to a synthetic connector that refuses wallet approval. It catches SDK initialization failures without connecting a wallet or submitting a transaction; it is separate from full Lace acceptance.
+
 Use **GitHub Actions** as the repository's Pages build source. The workflow grants Pages deployment permission only to the deployment job. Public artifacts contain static frontend files, public circuit material, dependencies and documentation. They must not contain wallet profiles, seeds, passwords, private state or private disclosure downloads.
 
 The separate manually dispatched Lace workflow is for independent extension testing on a disposable GitHub runner. Its results are separate from successful website publication. Downloading a signed extension establishes neither wallet setup nor a successful transaction.
