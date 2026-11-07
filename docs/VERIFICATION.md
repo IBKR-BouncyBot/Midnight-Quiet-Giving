@@ -61,6 +61,8 @@ The final [layout and browser run 42359565640](https://github.com/IBKR-BouncyBot
 
 The internal-wallet test uses fresh SDK 2 wallets in a disposable GitHub runner. It publishes a public Preview funding address while waiting for faucet tokens. Seeds, signing keys and private receipt openings stay in the runner process; only curated public progress and transaction evidence may be retained. The test checks the Preview genesis before using the application contract and public disclosure verifier.
 
+[Run 42359923252](https://github.com/IBKR-BouncyBot/Midnight-Quiet-Giving/actions/runs/42359923252) verified the new chain and initialized fresh internal wallets, then ended at its funding deadline on 7 November at 11:29 UTC. No funding was observed and no transaction or proof was submitted. Its [public evidence](sdk-preview-evidence.json) records `PREVIEW_FUNDING_NOT_OBSERVED`; the disposable wallet has expired and its address must not be funded for a later test.
+
 This is a separate SDK integration test. Even a completed SDK donation does not establish that the Lace extension can complete the same journey. The public application continues to offer its browser demo and real Lace testnet connection. A remote funding request or synchronized wallet is not accepted donation evidence.
 
 **The browser demo is tested; the Preview + Lace flow is implemented but not verified end to end.** A successful build, generated proof or one successful settings check must not substitute for accepted donation evidence. Do not substitute an SDK adapter or a simulated successful wallet response for the real extension result.

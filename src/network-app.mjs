@@ -1,14 +1,17 @@
 import { createNetworkClient, validateJoinFile, verifyIndexedDisclosure } from '../lib/network/sdk-client.mjs';
-import { connectNativeBrowserProviders, nativeStoragePasswordMessage, nativeConnectionErrorMessage } from '../lib/network/browser-providers.mjs';
+import { connectNativeBrowserProviders, nativeStoragePasswordMessage, nativeConnectionErrorMessage, nativeTransactionReadinessMessage } from '../lib/network/browser-providers.mjs';
 import { findNativeWallets, NETWORK_DEFAULTS, nativeNetworkErrorMessage, resolveNativeBrowserConfig } from '../lib/network/config.mjs';
 import { checkPreviewPublicServices, formatPreviewServiceError } from '../lib/network/public-testnet.mjs';
 import { verifyDisclosure } from '../lib/receipt.mjs';
 import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
 import { createDonationZkConfigProvider } from '../lib/network/artifact-provider.mjs';
+import { createActionFeedback } from './network-feedback.mjs';
 
 const $ = id => document.getElementById(id);
 const text = (id, value) => { const node = $(id); if (node) node.textContent = value; };
-const status = value => text('network-status', value);
+const feedback = createActionFeedback($('network-status'));
+const status = (value, kind) => feedback.update(value, kind);
+let actionStage = '';
 const ownErrors = new WeakSet();
 const state = { ready: false, busy: false, connection: null, client: null, record: null, wallets: [], disclosure: null, joinDetails: null, selectedReceipt: null, savedPrivate: false };
 function invalid(message) { const error = new Error(message); ownErrors.add(error); throw error; }
@@ -61,9 +64,12 @@ function capturePrivate() {
   const packet = state.client?.lastPrivateDisclosure;
   if (packet) { state.disclosure = packet; state.savedPrivate = false; }
 }
-async function action(fn) {
+async function action(fn, source) {
   if (state.busy) return;
-  state.busy = true; syncControls(); status('Working…');
+  state.busy = true; syncControls();
+  feedback.begin(source, source?.id === 'deploy' ? 'Preparing deployment…' : 'Working…');
+  actionStage = source?.id === 'deploy' ? 'Preparing deployment' : 'Starting action';
+  status(`${actionStage}…`);
   const previous = state.client?.lastAcceptedTransaction?.txId;
   try { await fn(); }
   catch (error) {
@@ -71,15 +77,16 @@ async function action(fn) {
     const accepted = state.client?.lastAcceptedTransaction;
     if (accepted?.txId && accepted.txId !== previous) {
       noteTransaction('Transaction', accepted);
-      status('The transaction was accepted, but its follow-up check did not finish. Refresh contract state or recover the pending donation. Do not repeat the payment.');
+      status('The transaction was accepted, but its follow-up check did not finish. Refresh contract state or recover the pending donation. Do not repeat the payment.', 'error');
     } else {
-      status(ownErrors.has(error) ? error.message : nativeStoragePasswordMessage(error) ?? nativeConnectionErrorMessage(error) ?? formatPreviewServiceError(error) ?? nativeNetworkErrorMessage(error));
-      if (state.client?.pendingDonation) status('The donation may have been sent. Keep this tab open, download its private receipt, and use Recover donation before sending another.');
+      const message = ownErrors.has(error) ? error.message : nativeStoragePasswordMessage(error) ?? nativeConnectionErrorMessage(error) ?? nativeTransactionReadinessMessage(error) ?? formatPreviewServiceError(error) ?? nativeNetworkErrorMessage(error);
+      status(`${message}${ownErrors.has(error) ? '' : ` Last step: ${actionStage}.`}`, 'error');
+      if (state.client?.pendingDonation) status('The donation may have been sent. Keep this tab open, download its private receipt, and use Recover donation before sending another.', 'error');
     }
-  } finally { state.busy = false; syncControls(); }
+  } finally { feedback.finish(); state.busy = false; syncControls(); }
 }
 const on = (id, handler, event = 'click') => {
-  const node = $(id); if (node) node.addEventListener(event, ev => { ev.preventDefault(); void action(() => handler(ev)); });
+  const node = $(id); if (node) node.addEventListener(event, ev => { ev.preventDefault(); void action(() => handler(ev), node); });
 };
 function refreshWallets() {
   state.wallets = findNativeWallets().filter(entry => entry.rdns === 'io.lace.wallet');
@@ -97,6 +104,8 @@ const STAGES = {
   'wallet-connected': 'Lace connected. No transaction submitted.', 'proving-provider-started': 'Preparing the contract proof in Lace…',
   'proving-provider-completed': 'Proof provider completed. Waiting for wallet balancing…', 'wallet-approval-requested': 'Review and approve this Preview transaction in Lace…',
   'wallet-balanced': 'Lace balanced the transaction using test DUST…', 'submission-returned': 'Transaction submitted. Waiting for the Preview indexer…',
+  'wallet-session-check': 'Checking the connected Lace account…', 'wallet-dust-check': 'Checking usable test DUST in Lace…',
+  'wallet-dust-ready': 'Lace reports a positive DUST balance. Preparing the transaction…',
 };
 async function connect() {
   const entry = state.wallets.find(value => value.id === $('wallet-select').value);
@@ -104,7 +113,7 @@ async function connect() {
   const password = $('storage-password').value;
   const connection = await connectNativeBrowserProviders({ wallet: entry.wallet, configuration: NETWORK_DEFAULTS.preview,
     passwordProvider: async () => password, internalProverConfirmed: $('internal-prover-confirmed').checked,
-    onStage: stage => { if (STAGES[stage]) status(STAGES[stage]); } });
+    onStage: stage => { if (STAGES[stage]) { actionStage = STAGES[stage].replace(/[…\.]+$/, ''); status(STAGES[stage]); } } });
   try { state.client = createNetworkClient(connection.providers, { networkId: connection.networkId, compiledAssetsPath: connection.compiledAssetsPath, assertSession: connection.assertSession }); }
   catch (error) { await connection.close(); throw error; }
   state.connection = connection; $('storage-password').value = '';
@@ -164,8 +173,14 @@ on('get-own-recipient', () => {
   const keys = state.client.getRecipientKeys(); $('recipient-key').value = keys.recipientKey; $('recipient-encryption-key').value = keys.recipientEncryptionKey;
   status('Your connected wallet is selected as the recipient. Use another wallet to make a donation between separate people.');
 });
-on('deploy', async () => { const result = await state.client.deploy(recipientFields()); noteTransaction('Donation contract deployed', result); await refreshState(); status('Contract deployed. Lock its rules before minting test tokens or donating.'); });
+on('deploy', async () => {
+  const recipient = recipientFields(); await state.connection.assertTransactionReady();
+  actionStage = 'Preparing the donation contract and verifier keys'; status(`${actionStage}…`);
+  const result = await state.client.deploy(recipient); noteTransaction('Donation contract deployed', result); await refreshState();
+  status('Contract deployed. Lock its rules before minting test tokens or donating.');
+});
 on('lock-contract', async () => {
+  await state.connection.assertTransactionReady();
   const result = await state.client.lockRules(); if (!result.alreadyLocked) noteTransaction('Donation rules locked', result);
   await refreshState(); status('Donation rules are locked. Mint valueless test tokens to your connected donor wallet, then make a donation.');
 });
@@ -181,13 +196,14 @@ on('join', async () => {
   await refreshState(); status('Campaign and contract verifier keys checked against the Preview indexer. No transaction sent.');
 });
 on('export-join', () => { download('donation-campaign.public.json', state.client.exportJoinFile()); status('Public campaign file downloaded. It contains recipient public keys, not donor identity or private openings.'); });
-on('mint', async () => { const result = await state.client.mint(1000); noteTransaction('1,000 test donation tokens minted', result); await refreshState(); status('The faucet transaction was accepted. Wait for Lace to synchronize its test-token balance before donating.'); });
+on('mint', async () => { await state.connection.assertTransactionReady(); const result = await state.client.mint(1000); noteTransaction('1,000 test donation tokens minted', result); await refreshState(); status('The faucet transaction was accepted. Wait for Lace to synchronize its test-token balance before donating.'); });
 on('donation-form', async () => {
   if (state.disclosure && !state.savedPrivate) invalid('Save your private receipt before making another donation. This session holds its only copy.');
   const units = Number($('donation-amount').value);
   if (!Number.isSafeInteger(units) || units < 1 || units > 1_000_000) invalid('Choose a whole amount from 1 through 1,000,000 test tokens.');
   const taxpayerId = $('taxpayer-label').value.trim();
   if (!taxpayerId || taxpayerId.length > 80 || /[\u0000-\u001f\u007f]/.test(taxpayerId)) invalid('Use a demonstration taxpayer label with 1 to 80 characters. Do not enter an actual tax identification number.');
+  await state.connection.assertTransactionReady();
   const result = await state.client.donate({ amount: units, taxpayerId });
   capturePrivate(); state.selectedReceipt = result.receipt;
   if (result.transaction) noteTransaction('Private donation', result.transaction);

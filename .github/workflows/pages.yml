@@ -39,6 +39,18 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Exercise browser donation and disclosure journey
         run: npm run test:browser
+      - name: Check visible wallet action failures
+        run: node scripts/test-network-feedback.mjs
+      - name: Save wallet feedback regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: donation-wallet-feedback-checks
+          path: |
+            artifacts/network-feedback/report.json
+            artifacts/network-feedback/*.png
+          if-no-files-found: warn
+          retention-days: 14
       - name: Generate real browser worker proofs
         if: github.event_name == 'workflow_dispatch'
         timeout-minutes: 15

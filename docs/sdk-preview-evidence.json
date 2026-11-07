@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "kind": "quiet-giving-sdk-preview-acceptance",
+  "status": "blocked",
+  "startedAt": "2026-11-07T09:29:43.682Z",
+  "networkId": "preview",
+  "walletKind": "fresh-internal-sdk-wallet",
+  "laceTest": false,
+  "realMoneyTransferred": false,
+  "runner": {
+    "runId": "42359923252",
+    "runAttempt": "1",
+    "sourceCommit": "27add4dcb8a39d04806f5c84bf64a62a2f7f8344",
+    "url": "https://github.com/IBKR-BouncyBot/Midnight-Quiet-Giving/actions/runs/42359923252"
+  },
+  "versions": {
+    "walletSdk": "2.0.0",
+    "midnightJs": "5.0.0",
+    "compactCompiler": "0.36.0",
+    "compactRuntime": "0.21.0",
+    "contractZkir": "3.2.0",
+    "nativeWalletZkir": "2.2.0"
+  },
+  "proving": {
+    "mode": "official-wasm-in-isolated-runner",
+    "remoteHttpProverConfigured": false,
+    "contractProofs": [],
+    "walletProofs": [],
+    "checks": 0,
+    "nativeKeyMaterial": []
+  },
+  "transactions": [],
+  "checks": {},
+  "privacy": {
+    "seedsPersisted": false,
+    "privateDisclosurePersisted": false,
+    "separateRecipientWallet": true
+  },
+  "confirmationSource": "configured-indexer",
+  "independentlyVerified": false,
+  "taxAuthorityAccepted": false,
+  "stage": "awaiting-faucet-funding",
+  "chain": {
+    "genesisHash": "0x3c096de209e06a1a8c52be7bda109ee8c891a42288c0a9db5495f9616dd13796",
+    "runtimeSpecVersion": 2001100,
+    "transactionVersion": 4
+  },
+  "compiledManifestSha256": "9994173c779916ce1f75b70f74afe0e9590f51c8bfc53b0e7ab8c79346314489",
+  "sourceHashes": {
+    "scripts/ci-sdk-preview.mjs": "9eabdb72c6c409a4880908eb2881022fc40d06e71f58b952b35f5c4b70c3d74c",
+    "scripts/sdk-preview/runtime.mjs": "67045907d722b5e4459413602b662b5844f0b003036e4235c8fbb0364f243c6e",
+    "scripts/sdk-preview/wallet.mjs": "06b51e8178b151a61f07f7b357a0208b6eca12df10eab37cb273c2f727f03cdd",
+    "scripts/sdk-preview/proving.mjs": "f62af42d614da0ddb03201fef8231e8bfae5ec810b8e7fda7727fc857e44f93c",
+    "scripts/sdk-preview/contract-proof-worker.mjs": "b32d6264c57f2b4e3e755feffc60348b4520f1f4b8b4af0c9945262c55a20537",
+    "lib/network/sdk-client.mjs": "04586b9fb60e441501deaff0602d920515372247f2326adac358844aa92fcea0",
+    "lib/network/maintenance.mjs": "06368601bcd1fa3ea8524c84ade3acb47ebd0393869eb2287d092ddf1151ded0",
+    "package-lock.json": "4d571a0169779e8d2232c8af2154b53a450ab6ace7c9ab67b129ddd7234f6f08"
+  },
+  "donorAddress": "mn_addr_preview14nxqxsrfr86pr7w9le7rzhsgynek4m4m4rw5pwzu0g6pgkpcxrwqnc8tqq",
+  "failedStage": "awaiting-faucet-funding",
+  "failure": {
+    "code": "PREVIEW_FUNDING_NOT_OBSERVED",
+    "signals": []
+  },
+  "completedAt": "2026-11-07T11:29:47.686Z"
+}
