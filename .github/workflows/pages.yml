@@ -41,6 +41,18 @@ jobs:
         run: npm run test:browser
       - name: Check visible wallet action failures
         run: node scripts/test-network-feedback.mjs
+      - name: Check production contract preparation before wallet approval
+        run: node scripts/test-network-preparation.mjs
+      - name: Save production preparation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: donation-network-preparation-checks
+          path: |
+            artifacts/network-preparation/report.json
+            artifacts/network-preparation/preparation-*.png
+          if-no-files-found: warn
+          retention-days: 14
       - name: Save wallet feedback regression evidence
         if: always()
         uses: actions/upload-artifact@v4
