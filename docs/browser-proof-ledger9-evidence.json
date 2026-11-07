@@ -1,0 +1,190 @@
+{
+  "schema": "donations-browser-worker-proofs/v1",
+  "startedAt": "2026-11-07T09:25:12.496Z",
+  "status": "passed",
+  "networkSubmission": false,
+  "networkAcceptance": false,
+  "walletConnected": false,
+  "realLaceWalletTested": false,
+  "walletDustProofsTested": false,
+  "proofServerUsed": false,
+  "independentProofVerification": false,
+  "privateInputsSynthetic": true,
+  "privateInputsGeneratedInsideWorker": true,
+  "proofs": [
+    {
+      "circuit": "mint",
+      "rawProofBytes": 5413,
+      "sha256": "c8dbaa7cbc4c6dfec3595f6005008d03e6bc8e5d61d83a8a4708879c67f19e0b",
+      "elapsedMs": 51101,
+      "zkirMemoryBytes": 248315904
+    },
+    {
+      "circuit": "donate",
+      "rawProofBytes": 5413,
+      "sha256": "80f988562a9ccd4dbe45aaff3065e80e963ee35d95dce27e06e70ba40780cb44",
+      "elapsedMs": 177283,
+      "zkirMemoryBytes": 1141899264
+    }
+  ],
+  "assets": [
+    {
+      "path": "assets/params/bls_midnight_2p13",
+      "bytes": 1573252,
+      "sha256": "d3324910969c4cc54143b8045b649e5c3a4bd5fb7b8f85fe1b770f640ce1c803"
+    },
+    {
+      "path": "assets/params/bls_midnight_2p14",
+      "bytes": 3146116,
+      "sha256": "fc253016885ec830e97808c9ec920bb5cab5c21af590380a6cb5eb0538e2b244"
+    },
+    {
+      "path": "assets/params/bls_midnight_2p15",
+      "bytes": 6291844,
+      "sha256": "724c7c3d779148bb113c7ee9c034b2f27db16e6bdf315fde90105a9bad00b1de"
+    },
+    {
+      "path": "assets/params/bls_midnight_2p16",
+      "bytes": 12583300,
+      "sha256": "09c877216d6589b370263e18af40a030a901b41a7a7c37ef58c9901db41f05c6"
+    },
+    {
+      "path": "assets/params/bls_midnight_2p17",
+      "bytes": 25166212,
+      "sha256": "4a9ef6c7c0619aab74eede44b13e753e3ba54508a02dd3b7106a949aabb73b74"
+    },
+    {
+      "path": "assets/contract/keys/mint.prover",
+      "bytes": 22550871,
+      "sha256": "7a3420f62f0c1ae8bce563f0fe97a8fd043cd26ce443cdb800a43ee3f2f0b94c"
+    },
+    {
+      "path": "assets/contract/keys/mint.verifier",
+      "bytes": 2121,
+      "sha256": "49a02f868f480471c165f93378bcfe5b0d0f994a63bcbd9db6b41af8c2732298"
+    },
+    {
+      "path": "assets/contract/zkir/mint.bzkir",
+      "bytes": 2119,
+      "sha256": "726ab599de92549aea8d3ed60ae81e32917e981b2bf9b05bfbf36118e6757ac5"
+    },
+    {
+      "path": "assets/contract/keys/donate.prover",
+      "bytes": 90187225,
+      "sha256": "2eb5fecaf1a27f2dcdea17e97345aa93f07df68ca59dd5d13e212ab683579d18"
+    },
+    {
+      "path": "assets/contract/keys/donate.verifier",
+      "bytes": 2121,
+      "sha256": "ba6636feeeb80b2c9e6f26c2b52a0b2d306785b91a982d9e7632681091fbb85c"
+    },
+    {
+      "path": "assets/contract/zkir/donate.bzkir",
+      "bytes": 5321,
+      "sha256": "27a7b0ab551e0b0a2fa72654bd8fe8e91fc5b1ccca2661e5cb4597323e4d3d68"
+    },
+    {
+      "path": "wasm/midnight_zkir_wasm_bg-5c81a400f7bc110c0c65a1889c1e241a4055efdb722e8e512b459ab6d2f80255.wasm",
+      "bytes": 4033222,
+      "sha256": "5c81a400f7bc110c0c65a1889c1e241a4055efdb722e8e512b459ab6d2f80255"
+    },
+    {
+      "path": "wasm/midnight_onchain_runtime_wasm_bg-a10579365a8bf303abdcedef906f4bdf4a159f189f19c86c654bd75d0a0c870d.wasm",
+      "bytes": 1557706,
+      "sha256": "a10579365a8bf303abdcedef906f4bdf4a159f189f19c86c654bd75d0a0c870d"
+    },
+    {
+      "path": "proof-worker.mjs",
+      "bytes": 341245,
+      "sha256": "3ad6fa28d51d21b48b5d9df06343fe746ee1a26a94b578b01f778f99eb3b4281"
+    },
+    {
+      "path": "page.mjs",
+      "bytes": 1796,
+      "sha256": "abd502336e95dd060c45bd7dd52daa9821007afbb09048b0321cc1e88fe5c8d3"
+    },
+    {
+      "path": "index.html",
+      "bytes": 664,
+      "sha256": "549b8ebc9fe49c6470ace4ffd1e99b3996cb19a598137a20d7b3e359798d60ba"
+    }
+  ],
+  "sourceHashes": {
+    "scripts/test-worker-proofs.mjs": "d39c80a3296b77f9715a1c540d3fcd60d3bb4807f12494689680d97f1671c20c",
+    "scripts/native-wasm-plugin.mjs": "8e2abdab0749d8fde9f8d3421fac287c26f89e523a6a734b39b582cfea5bf13f",
+    "scripts/serve.mjs": "473779289aae142a246b7ff3e88285a9becb66389d77065fa4c5fd9e28063ceb",
+    "tests/worker-proofs/worker.mjs": "689bba2d3527aac677f7e6c0cd164e44659e6fbd4c9376a4e52ee8e28600b5b2",
+    "tests/worker-proofs/page.mjs": "abd502336e95dd060c45bd7dd52daa9821007afbb09048b0321cc1e88fe5c8d3",
+    "tests/worker-proofs/index.html": "549b8ebc9fe49c6470ace4ffd1e99b3996cb19a598137a20d7b3e359798d60ba",
+    "tests/worker-proofs/public-assets.json": "8cfa103d993c4a6c0b54eb0b6ab24a63c9990377ac3ec8c188f378130fc95a9d",
+    "lib/native-engine.mjs": "478be01286d8726bec33539df8c614b336d346c654794719c6eeffccffa894a4",
+    "lib/receipt.mjs": "1ebc370c0f32e7098fa08cec5a578d692a3c0a0ef49a20fcf6cd10bc175efe91",
+    "contracts/donations.compact": "debc21c1785fbac69a7f1f6821457d3661b2391adead3139ef9f0ff1d94b19b3",
+    "contracts/managed/donations/contract/index.js": "f69f1c49483ec4c20d552e6644094786a7547079f95f02ec001acc3a738f46db",
+    "contracts/managed/donations/compiler/contract-manifest.json": "9994173c779916ce1f75b70f74afe0e9590f51c8bfc53b0e7ab8c79346314489",
+    "package-lock.json": "4d571a0169779e8d2232c8af2154b53a450ab6ace7c9ab67b129ddd7234f6f08"
+  },
+  "versions": {
+    "zkir": "3.2.0",
+    "compactRuntime": "0.21.0",
+    "compilerTarget": "0.36.0",
+    "language": "0.28.0",
+    "esbuild": "0.28.2"
+  },
+  "publicParameterDownloads": 5,
+  "events": [
+    {
+      "type": "progress",
+      "circuit": "mint",
+      "heartbeat": 10,
+      "receivedAtMs": 373
+    },
+    {
+      "type": "proof-completed",
+      "circuit": "mint",
+      "heartbeat": 2565,
+      "receivedAtMs": 51474
+    },
+    {
+      "type": "progress",
+      "circuit": "donate",
+      "heartbeat": 2565,
+      "receivedAtMs": 51474
+    },
+    {
+      "type": "proof-completed",
+      "circuit": "donate",
+      "heartbeat": 11430,
+      "receivedAtMs": 228757
+    }
+  ],
+  "rejectedBrowserRequests": 0,
+  "pageErrors": 0,
+  "negativeChecks": {
+    "duplicateDonationRejectedBeforeProving": true,
+    "wrongAssetRejectedBeforeProving": true,
+    "wrongCircuitPreimageRejectedByZkirCheck": true
+  },
+  "mainThreadHeartbeats": 11430,
+  "largestHeartbeatGapMs": 23,
+  "sharedWasmMemory": false,
+  "crossOriginIsolated": false,
+  "browserVersion": "156.0.8078.4",
+  "fetchedAssetPaths": [
+    "",
+    "assets/contract/keys/donate.prover",
+    "assets/contract/keys/donate.verifier",
+    "assets/contract/keys/mint.prover",
+    "assets/contract/keys/mint.verifier",
+    "assets/contract/zkir/donate.bzkir",
+    "assets/contract/zkir/mint.bzkir",
+    "assets/params/bls_midnight_2p14",
+    "assets/params/bls_midnight_2p16",
+    "page.mjs",
+    "proof-worker.mjs",
+    "wasm/midnight_onchain_runtime_wasm_bg-a10579365a8bf303abdcedef906f4bdf4a159f189f19c86c654bd75d0a0c870d.wasm",
+    "wasm/midnight_zkir_wasm_bg-5c81a400f7bc110c0c65a1889c1e241a4055efdb722e8e512b459ab6d2f80255.wasm"
+  ],
+  "responsivenessRequirement": "At least five main-thread heartbeats during each proof; no heartbeat gap of 2 seconds or longer",
+  "completedAt": "2026-11-07T09:29:04.757Z"
+}
