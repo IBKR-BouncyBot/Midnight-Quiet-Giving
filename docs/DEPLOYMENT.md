@@ -10,4 +10,6 @@ Use **GitHub Actions** as the repository's Pages build source. The workflow gran
 
 The separate manually dispatched Lace workflow is for independent extension testing on a disposable GitHub runner. Its results are separate from successful website publication. Downloading a signed extension establishes neither wallet setup nor a successful transaction.
 
+The internal-wallet acceptance workflow uses fresh SDK wallets entirely on a disposable GitHub runner. Its public funding artifact is available while the runner waits for Preview faucet tokens. Wallet secrets and private disclosure openings are never uploaded. This test is separate from the Lace extension workflow; SDK acceptance must not be reported as a completed Lace test. Manual runs of `pages.yml` also generate actual circuit proofs in a browser worker on the runner.
+
 GitHub Pages has no application backend. It does not host the illustrated tax authority, a prover or a Midnight node. Each visitor's Lace wallet handles its approvals and proving; the frontend connects to public Preview services.

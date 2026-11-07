@@ -47,6 +47,18 @@ On 7 November, the resumed test encountered a new Preview chain. The [official r
 
 Quiet Giving now targets the [supported ledger 9 versions](https://docs.midnight.network/relnotes/support-matrix): Compact 0.36.0, runtime 0.21.0, Midnight.js 5.0.0 and connector API 4.1.0. Its contract was recompiled. All 32 native, privacy and network-boundary tests passed, including current-era state decoding, refusing ledger 8 transactions, compiler-manifest integrity checks and serialized concurrent contract calls. The old-chain checks above remain historical evidence.
 
-A replacement fresh wallet was created in the same verified, unmodified Lace 2.5.1 extension. Preview and persisted internal WASM were checked again. Its configured wallet indexer returned HTTP 500, while the canonical Preview indexer returned the new chain's much lower block height. A connection permission is not proof that the wallet is synchronized. Fresh faucet funding and a working wallet indexer are required before the donation acceptance test can proceed. The replacement profile and test passwords are retained locally, with passwords protected by Windows encryption; no seed or private artifact is published.
+A replacement fresh wallet was created in the same verified, unmodified Lace 2.5.1 extension. Preview and persisted internal WASM were checked again. Its configured wallet indexer returned HTTP 500, while the canonical Preview indexer returned the new chain's much lower block height. A connection permission is not proof that the wallet is synchronized. That local wallet session was then stopped at the project owner's request. Further wallet and browser acceptance runs use isolated GitHub runners. The earlier local funding address is not the address for the remote test.
+
+## Remote checks after migration
+
+[GitHub run 42358887025](https://github.com/IBKR-BouncyBot/Midnight-Quiet-Giving/actions/runs/42358887025), at source `fe0ed900d9b8d9bfc9e1195756e892a9a205c699`, passed official compilation, all 32 tests, production builds, and the complete Chromium browser journey on the ledger 9 toolchain. The real network bundle and WebAssembly initialized without a wallet; unavailable-wallet actions remained disabled.
+
+The final [layout and browser run 42359565640](https://github.com/IBKR-BouncyBot/Midnight-Quiet-Giving/actions/runs/42359565640), at source `b76f69d8bc12242e364189e1cf933b23ba719122`, passed after fixing two clipped mobile connector labels. Its desktop, 390-pixel and 320-pixel screenshots were visually reviewed, including the front-page mode choices, donor/recipient/verifier graphics and support QR/copy section. No page errors or horizontal overflow were recorded. These browser checks used no wallet and submitted no network transaction.
+
+## Isolated internal-wallet acceptance
+
+The internal-wallet test uses fresh SDK 2 wallets in a disposable GitHub runner. It publishes a public Preview funding address while waiting for faucet tokens. Seeds, signing keys and private receipt openings stay in the runner process; only curated public progress and transaction evidence may be retained. The test checks the Preview genesis before using the application contract and public disclosure verifier.
+
+This is a separate SDK integration test. Even a completed SDK donation does not establish that the Lace extension can complete the same journey. The public application continues to offer its browser demo and real Lace testnet connection. A remote funding request or synchronized wallet is not accepted donation evidence.
 
 **The browser demo is tested; the Preview + Lace flow is implemented but not verified end to end.** A successful build, generated proof or one successful settings check must not substitute for accepted donation evidence. Do not substitute an SDK adapter or a simulated successful wallet response for the real extension result.
