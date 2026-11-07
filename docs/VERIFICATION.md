@@ -57,6 +57,12 @@ The final [layout and browser run 42359565640](https://github.com/IBKR-BouncyBot
 
 [Remote proof run 42359577158](https://github.com/IBKR-BouncyBot/Midnight-Quiet-Giving/actions/runs/42359577158), at the same source, generated genuine zkIR 3.2.0 proofs in Chromium 156's worker using the recompiled Compact 0.36.0 circuits. Each proof was 5,413 bytes; mint took 51.1 seconds and donate took 177.3 seconds on that runner. Duplicate donations, the wrong asset and a mismatched circuit preimage were rejected. No page errors or external browser requests were recorded, and the largest main-thread heartbeat gap was 23 milliseconds. The [ledger 9 proof evidence](browser-proof-ledger9-evidence.json) preserves source/asset hashes and measurements. This proves circuit proof generation, not a wallet or network transaction; the older zkIR 2 evidence above remains historical.
 
+## Wallet action feedback
+
+[Run 42369369159](https://github.com/IBKR-BouncyBot/Midnight-Quiet-Giving/actions/runs/42369369159), at source `04dd1e6fadd3786faf081e1f30cd6f86474abbe6`, passed all 38 tests and the real browser journey. A separate UI regression harness exercised the actual page/event handlers against explicitly simulated failures: zero DUST capacity, declined requests, preparation errors, a read-only DUST timeout and a delayed operation. It verified in-panel feedback at 1440, 390 and 320 pixels, busy controls, duplicate-click suppression and exclusion of private error payloads. The [public UI evidence](wallet-feedback-evidence.json) identifies the simulated boundaries; it is not evidence of a connected Lace wallet or an accepted deployment. No local wallet or browser was used for this acceptance run.
+
+The reported deployment screenshot established an offscreen generic error, not its underlying wallet or network cause. The UI now exposes finite error categories and the last step reached, and checks Lace's reported DUST before requesting a transaction. A positive DUST balance does not prove synchronization or adequate fee coverage.
+
 ## Isolated internal-wallet acceptance
 
 The internal-wallet test uses fresh SDK 2 wallets in a disposable GitHub runner. It publishes a public Preview funding address while waiting for faucet tokens. Seeds, signing keys and private receipt openings stay in the runner process; only curated public progress and transaction evidence may be retained. The test checks the Preview genesis before using the application contract and public disclosure verifier.

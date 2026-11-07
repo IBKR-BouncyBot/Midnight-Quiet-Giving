@@ -1,0 +1,34 @@
+{
+  "kind": "network-ui-failure-regression",
+  "status": "passed",
+  "startedAt": "2026-11-07T11:44:32.204Z",
+  "realApplicationUi": true,
+  "simulatedFailureBoundaries": true,
+  "realWalletConnected": false,
+  "proofGenerated": false,
+  "networkTransactionSubmitted": false,
+  "networkAcceptance": false,
+  "cases": [
+    "Visible 1440px in-panel readiness failure, busy control, duplicate suppression and safe retry enablement",
+    "Visible 390px in-panel readiness failure, busy control, duplicate suppression and safe retry enablement",
+    "Visible 320px in-panel readiness failure, busy control, duplicate suppression and safe retry enablement",
+    "wallet-rejected: fixed safe error remains visible without exposing raw exception details",
+    "preparation-failed: fixed safe error remains visible without exposing raw exception details",
+    "Actual 15-second read-only DUST timeout is visible and prevents deployment",
+    "Long operation keeps busy feedback and gives a waiting hint without a duplicate submission"
+  ],
+  "sourceHashes": {
+    "src/network-app.mjs": "8918c29b4cc5d323b8173679c3e33d5b1736f4a64a025e5a92233d047720d486",
+    "src/network-feedback.mjs": "ed48628eb90ed378fd07114495dbdffe97bed29362d2087664d305288568f2ac",
+    "src/network.html": "2581c0dd4c7ab49fc81f1fbb0f4bf1953a7ea8f801e89f482f04396f9a98bc21",
+    "src/styles.css": "dde30ee88970dd63326aaceb9d1b4157c5b763ae305913e04d49090c5175fbc2",
+    "lib/network/wallet-readiness.mjs": "ab14ba61ed8cd6faafd6db4bcf1d9f56deccf3b210441d3c54b4434ac6915b0b",
+    "lib/network/config.mjs": "d26053faf0f1b2a5484fb7f957d677230dc7b2e9b91eb1cbe228db41b71e3414",
+    "tests/network-feedback/boundaries.mjs": "409f5878a8035ad6c678183055938c31a01b3b702f68370c892fa2217bf4b5cb",
+    "scripts/test-network-feedback.mjs": "0b4fcbd83bea2710d1317fbeeb5045127848b91eaf7d659add2f6271e10241c6"
+  },
+  "completedAt": "2026-11-07T11:44:33.408Z",
+  "browser": "156.0.8078.4",
+  "pageErrors": 0,
+  "externalRequests": 0
+}
