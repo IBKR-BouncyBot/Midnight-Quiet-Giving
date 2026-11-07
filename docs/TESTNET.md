@@ -22,13 +22,21 @@ The recipient provides its shielded coin public key and shielded encryption publ
 6. Wait for the application to report indexed confirmation. Retain the public receipt and explicitly download the private disclosure if needed.
 7. Send that disclosure to the **local authority demo** for commitment and indexed-record checks. This shares nothing with a real tax authority.
 
+## If Deploy does not open a Lace approval
+
+Read the feedback immediately beneath the deployment buttons. The button shows that it is working, and the message identifies the last step reached. The app first asks Lace for its current account and DUST balance; these read-only checks time out after 15 seconds without requesting a transaction.
+
+If Lace reports no DUST generation capacity, open its Midnight Preview account and choose **Generate tDUST** to register the test NIGHT. If capacity exists but usable DUST is zero, allow it to accrue and let the account synchronize. A displayed tNIGHT balance alone does not establish usable DUST. A positive DUST check is only a prerequisite: Lace still estimates the actual transaction fee.
+
+Other messages distinguish contract-file downloads and integrity checks, encrypted storage, network queries, wallet approval/proving and uncertain submission. Keep an approved or submitted transaction under review before retrying. The app does not automatically resubmit transactions.
+
 ## Proving and evidence
 
 The contract and wallet/DUST proofs are requested through Lace. The app rejects a reported HTTP proof server and does not silently fall back to one. DApp Connector API 4.1 does not attest its internal proving mode, so a missing URL alone is insufficient evidence. A real extension test must inspect its setting and relevant traffic.
 
 The UI distinguishes connection, proving, wallet approval, submission and confirmation. A long proof is not a confirmed donation. An interrupted submission may still land; use recovery/check controls before retrying. Save needed private material before closing the tab.
 
-As of **7 November 2026**, a complete donation through Lace on the new Preview chain remains unverified. The tested Lace 2.5.1 bundle includes ledger 9 support, but its configured wallet indexer returned HTTP 500 while the canonical public Preview services responded. This prevented wallet synchronization and transaction acceptance testing. Earlier browser and proof-generation passes do not establish new-chain settlement. See the [verification record](VERIFICATION.md) for current evidence.
+As of **7 November 2026**, a complete donation through Lace on the new Preview chain remains unverified. Earlier checks encountered an HTTP 500 from Lace's configured wallet indexer while canonical public Preview services responded. A later, separate internal SDK wallet test ran entirely on GitHub and ended without receiving faucet funding. These are historical test outcomes, not a diagnosis of every visitor's wallet. Browser and proof-generation passes do not establish new-chain settlement. See the [verification record](VERIFICATION.md) for current evidence.
 
 ## Limitations
 

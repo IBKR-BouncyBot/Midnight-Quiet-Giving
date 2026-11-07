@@ -2,6 +2,12 @@
 export function createActionFeedback(globalStatus, { slowAfterMs = 15000 } = {}) {
   let active = null;
   function clearTimer() { if (active?.timer) clearTimeout(active.timer); }
+  function reveal(output) {
+    const bounds = output.getBoundingClientRect();
+    if (bounds.top < 24 || bounds.bottom > window.innerHeight - 24) {
+      output.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
+  }
   return {
     begin(source, label = 'Working…') {
       clearTimer();
@@ -23,6 +29,7 @@ export function createActionFeedback(globalStatus, { slowAfterMs = 15000 } = {})
       active.output.hidden = false;
       if (kind === 'error') active.output.setAttribute('role', 'alert');
       else active.output.setAttribute('role', 'status');
+      reveal(active.output);
       if (kind === 'progress') {
         const current = active;
         current.timer = setTimeout(() => {
@@ -30,6 +37,7 @@ export function createActionFeedback(globalStatus, { slowAfterMs = 15000 } = {})
           const hint = document.createElement('span'); hint.className = 'action-wait-hint';
           hint.textContent = 'Still waiting for Lace or Preview. Check any open Lace request and keep this tab open. Do not submit the action again while it is running.';
           current.output.append(hint);
+          reveal(current.output);
         }, slowAfterMs);
       }
     },

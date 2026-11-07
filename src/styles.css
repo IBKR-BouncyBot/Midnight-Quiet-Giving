@@ -231,3 +231,4 @@ html{scroll-behavior:smooth}body{overflow-x:hidden}button,input,select{border-ra
 .action-feedback{margin:16px 0;padding:14px 16px;border:1px solid #42426c;border-left:3px solid #8b8bff;border-radius:4px;background:#15151e;color:#ededff;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
 .action-feedback[hidden]{display:none}.action-feedback[data-kind="error"]{border-color:#8e6742;border-left-color:#e9ab68;background:#211a16;color:#ffe0bc}
 .action-wait-hint{display:block;margin-top:9px;color:#bdbdd2;font-size:12px}.button[aria-busy="true"]{cursor:progress;opacity:.85}
+.action-feedback{scroll-margin-block:24px}
